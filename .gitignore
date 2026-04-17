@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+.env
+.env.*
+models/**/.cache/
+.cursor/
+.specstory/
+.vscode/
+# 大きい ONNX は Git LFS か CI で配布する運用なら下のコメントを外す
+# *.onnx

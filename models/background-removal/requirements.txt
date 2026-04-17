@@ -1,0 +1,7 @@
+torch==2.7.1
+torchvision==0.22.1
+opencv-python==4.12.0.88
+numpy
+requests
+Pillow
+onnxruntime==1.22.1

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ONNX ラボ — onnx-test</title>
+  <style>
+    :root {
+      --bg: #f4f4f6;
+      --surface: #ffffff;
+      --text: #1a1a1e;
+      --muted: #5c5c66;
+      --border: #e2e2e8;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --shadow: 0 12px 40px rgba(15, 23, 42, 0.08);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f1117;
+        --surface: #1a1d26;
+        --text: #f1f5f9;
+        --muted: #94a3b8;
+        --border: #2d3340;
+        --accent: #60a5fa;
+        --accent-hover: #93c5fd;
+        --shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+      }
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, "Noto Sans JP", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.25rem;
+      line-height: 1.6;
+    }
+    .card {
+      width: 100%;
+      max-width: 560px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      padding: 2rem;
+    }
+    h1 {
+      margin: 0 0 0.5rem;
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+    p {
+      margin: 0 0 1.25rem;
+      color: var(--muted);
+      font-size: 0.9375rem;
+    }
+    ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    li { margin-bottom: 0.65rem; }
+    a {
+      color: var(--accent);
+      font-weight: 600;
+      text-decoration: none;
+      border-radius: 8px;
+      outline-offset: 3px;
+    }
+    a:hover { color: var(--accent-hover); text-decoration: underline; }
+    a:focus-visible {
+      outline: 2px solid var(--accent);
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>ONNX ラボ</h1>
+    <p>
+      ブラウザで ONNX モデルを試す <strong>onnx-test</strong> プロジェクトのエントリです。
+      人物切り抜き・スタイル適用・背景合成など、ツールを追加していく想定です。
+    </p>
+    <nav aria-label="サイト内リンク">
+      <ul>
+        <li>
+          <a href="diorama-studio.html">ジオラマスタジオ</a>
+          — U²-Net-P で人物切り抜き、モザイク風スタイルで背景合成
+        </li>
+      </ul>
+    </nav>
+  </main>
+</body>
+</html>

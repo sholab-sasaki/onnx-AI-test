@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ジオラマスタジオ（U²-Net-P + Mosaic）</title>
+  <style>
+    :root {
+      --bg: #f4f4f6;
+      --surface: #ffffff;
+      --text: #1a1a1e;
+      --muted: #5c5c66;
+      --border: #e2e2e8;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --shadow: 0 12px 40px rgba(15, 23, 42, 0.08);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f1117;
+        --surface: #1a1d26;
+        --text: #f1f5f9;
+        --muted: #94a3b8;
+        --border: #2d3340;
+        --accent: #60a5fa;
+        --accent-hover: #93c5fd;
+        --shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+      }
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, "Noto Sans JP", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 1rem;
+      line-height: 1.5;
+    }
+    h1 { font-size: 1.35rem; margin: 0 0 0.5rem; }
+    .layout {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      gap: 1rem;
+      grid-template-columns: 1fr minmax(280px, 340px);
+    }
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      padding: 1.25rem;
+    }
+    .muted { color: var(--muted); font-size: 0.875rem; margin: 0 0 1rem; }
+    label { display: block; font-size: 0.8125rem; font-weight: 600; margin: 0.75rem 0 0.25rem; }
+    input[type="file"] { font-size: 0.8125rem; max-width: 100%; }
+    input[type="range"] { width: 100%; }
+    .row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+    button {
+      font: inherit;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+    }
+    button.primary {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    button.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    #viewport-wrap {
+      overflow: auto;
+      max-height: 72vh;
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      background: repeating-conic-gradient(#e8e8ec 0% 25%, #f4f4f6 0% 50%) 50% / 16px 16px;
+    }
+    @media (prefers-color-scheme: dark) {
+      #viewport-wrap {
+        background: repeating-conic-gradient(#252830 0% 25%, #1a1d26 0% 50%) 50% / 16px 16px;
+      }
+    }
+    #stage {
+      display: block;
+      margin: 0 auto;
+      max-width: 100%;
+      height: auto;
+      touch-action: none;
+    }
+    #stage.can-grab { cursor: grab; }
+    #stage.grabbing { cursor: grabbing; }
+    #stage.can-rotate { cursor: alias; }
+    #stage.can-scale { cursor: nwse-resize; }
+    #status { font-size: 0.875rem; margin-top: 0.75rem; white-space: pre-wrap; word-break: break-word; }
+    a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>ジオラマスタジオ</h1>
+    <p class="muted">
+      写真から人物を切り抜き（U²-Net-P）、モザイク風スタイル（fast neural style）を適用し、背景に合成します。
+      既定では同じフォルダから ONNX を取得しますが、<strong>失敗した場合は下の「ONNX を手動で選択」から <code>u2netp.onnx</code> と <code>mosaic-8.onnx</code> を指定</strong>してください（<code>file://</code> でも利用可）。
+    </p>
+    <div class="layout">
+      <div class="card">
+        <div id="viewport-wrap">
+          <canvas id="stage" width="800" height="600" aria-label="合成プレビュー"></canvas>
+        </div>
+        <p class="muted" style="margin-top: 0.5rem; margin-bottom: 0;">
+          <strong>切り抜き後:</strong> 画像上をドラッグで移動 / <kbd>Shift</kbd>+ドラッグで回転 /
+          <kbd>Ctrl</kbd>（Mac は <kbd>⌘</kbd>）+ドラッグで拡大 / ホイールで拡大縮小
+        </p>
+        <p id="status">初期化中…</p>
+      </div>
+      <div class="card">
+        <label for="u2net-file">ONNX：U²-Net-P（<code>u2netp.onnx</code>）</label>
+        <input type="file" id="u2net-file" accept=".onnx,application/octet-stream,*/*" />
+
+        <label for="mosaic-file">ONNX：モザイクスタイル（<code>mosaic-8.onnx</code>）</label>
+        <input type="file" id="mosaic-file" accept=".onnx,application/octet-stream,*/*" />
+
+        <p class="muted" style="margin-top: 0.75rem;">
+          初回アクセスで取得した ONNX はブラウザの <strong>IndexedDB</strong> に保存され、次回以降は再ダウンロードを省略します（手動で選んだファイルは保存しません）。
+        </p>
+        <div class="row">
+          <button type="button" id="btn-clear-model-cache">保存した ONNX キャッシュを削除</button>
+        </div>
+
+        <label for="photo-preset">人物写真のプリセット</label>
+        <select id="photo-preset" aria-label="人物写真のプリセット">
+          <option value="synthetic" selected>デモ用（オフライン可・Canvas で生成）</option>
+          <option value="file">ファイルから選択</option>
+        </select>
+
+        <label for="photo-file">人物写真（ファイル）</label>
+        <input type="file" id="photo-file" accept="image/*" />
+
+        <label for="bg-preset">背景のプリセット</label>
+        <select id="bg-preset" aria-label="背景のプリセット">
+          <option value="bundled" selected>同梱パスを試す（<code>image/back_image_01.png</code>）</option>
+          <option value="synthetic">デモ用グラデーション（オフライン可）</option>
+          <option value="file">ファイルから選択</option>
+        </select>
+
+        <label for="bg-file">背景画像（ファイル）</label>
+        <input type="file" id="bg-file" accept="image/*" />
+
+        <div class="row" style="margin-top: 1rem;">
+          <button type="button" class="primary" id="btn-process" disabled>切り抜き＋スタイル＋合成</button>
+          <button type="button" id="btn-dl-png" disabled>PNG で保存</button>
+        </div>
+
+        <label for="sl-x">位置 X <span id="val-x"></span></label>
+        <input type="range" id="sl-x" min="-400" max="400" value="0" />
+        <label for="sl-y">位置 Y <span id="val-y"></span></label>
+        <input type="range" id="sl-y" min="-400" max="400" value="0" />
+        <label for="sl-scale">拡大率 <span id="val-scale"></span></label>
+        <input type="range" id="sl-scale" min="20" max="200" value="100" />
+        <label for="sl-rot">回転（度）<span id="val-rot"></span></label>
+        <input type="range" id="sl-rot" min="-180" max="180" value="0" />
+
+        <p class="muted" style="margin-top: 1rem;">
+          <a href="index.html">← onnx-test トップ</a>
+        </p>
+      </div>
+    </div>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
+  <script src="diorama-studio.js" defer></script>
+</body>
+</html>
