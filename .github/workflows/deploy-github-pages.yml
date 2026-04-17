@@ -1,0 +1,47 @@
+# 静的ファイルを GitHub Pages に公開（一般ユーザーがブラウザから利用可能）
+# ONNX 等は Git LFS の実体を取得してからアップロードする
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout（Git LFS 含む）
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      # 公開サイトに不要なものを除いてアーティファクトを軽くする
+      - name: Prune non-public files
+        run: |
+          rm -rf .git
+          rm -rf .github
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: "."
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -47,12 +47,31 @@ git remote add origin https://github.com/<あなたのユーザー>/onnx-test.gi
 git push -u origin main
 ```
 
-## デプロイ先の例（Docker なし）
+## 一般公開（GitHub Pages）
 
-- **GitHub Pages**: リポジトリ Settings → Pages → Branch `main` / folder `/ (root)`
-- **Cloudflare Pages**: ビルドコマンドなし、出力ディレクトリをリポジトリルートに
+`main` に push すると **GitHub Actions** が静的ファイルを **GitHub Pages** にデプロイします（`.github/workflows/deploy-github-pages.yml`）。ONNX は **Git LFS の実体を取得したうえで**アップロードされます。
 
-ONNX はサイズが大きいことが多いので、**Git LFS** や **オブジェクトストレージ**に置き、ページから相対 URL で読む構成も検討してください。
+### 初回だけ（Organization の管理者向け）
+
+1. リポジトリ **Settings** → **Pages**
+2. **Build and deployment** の **Source** を **GitHub Actions** にする（「Deploy from a branch」ではなく Actions 連携）
+3. 初回ワークフロー実行後、同じ Pages 画面に **公開 URL** が表示されます
+
+Organization の URL は次の形です（実際の値は Settings の Pages に従ってください）。
+
+`https://sho-lab-co-jp.github.io/onnx-test/`
+
+- トップ: `/` → `index.html`
+- ジオラマスタジオ: `/diorama-studio.html`
+
+Actions や Pages が Organization ポリシーで無効な場合は、管理者に有効化を依頼してください。
+
+### その他のホスティング（参考）
+
+- **Cloudflare Pages**: Git 連携し、ビルドは空・出力はリポジトリルート。LFS はビルドで `git lfs pull` が必要な場合あり
+- **Docker**（自前 VPS）: このリポジトリの `Dockerfile` で nginx が静的配信
+
+ONNX はサイズが大きいことが多いので、リポジトリでは **Git LFS** を使うか、CDN に置いて相対 URL を変える運用も検討してください。
 
 ## モデルファイルの取得例
 
