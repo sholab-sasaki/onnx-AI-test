@@ -66,6 +66,16 @@ git push -u origin main
 - トップ: `/` → `index.html`
 - ジオラマスタジオ: `/diorama-studio.html`
 
+#### Actions で `git lfs fetch` が 404 になるとき
+
+リポジトリを移した直後など、**LFS の実体が GitHub 上にまだ無い**と、デプロイの checkout で失敗します。手元で次を実行してから、Actions を再実行してください。
+
+```bash
+git lfs push --all origin
+```
+
+（`git lfs ls-files` で LFS 管理されているファイルが一覧されます。）
+
 ### その他のホスティング（参考）
 
 - **Cloudflare Pages**: Git 連携し、ビルドは空・出力はリポジトリルート。LFS はビルドで `git lfs pull` が必要な場合あり
