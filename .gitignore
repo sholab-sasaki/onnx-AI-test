@@ -3,8 +3,8 @@ __pycache__/
 .env
 .env.*
 models/**/.cache/
+# download_model.py の既定保存先（任意の大きいモデル）
+models/hf-snapshot/
 .cursor/
 .specstory/
 .vscode/
-# Cloudflare Pages は静的ファイル 25 MiB/個 制限のため、168MB の背景除去 ONNX はリポジトリに含めない（download_model.py で取得）
-models/background-removal/model.onnx

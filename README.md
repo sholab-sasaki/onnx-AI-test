@@ -68,8 +68,7 @@ git push -u origin main
 
 ### Cloudflare のファイルサイズ制限（25 MiB）
 
-**Pages に載せられる静的ファイルは 1 ファイルあたり最大 25 MiB**です。  
-`models/background-removal/model.onnx`（約 168 MiB）は制限を超えるため **リポジトリに含めていません**（ジオラマ機能もこのファイルは不要）。必要なら `download_model.py` でローカルに取得してください。
+**Pages に載せられる静的ファイルは 1 ファイルあたり最大 25 MiB**です。大きな ONNX はリポジトリに含めず、別ストレージやローカル取得に分ける必要があります。
 
 ### Git LFS について
 
@@ -84,16 +83,16 @@ git push -u origin main
 
 - **Docker**（自前 VPS）: このリポジトリの `Dockerfile` で nginx が静的配信
 
-## モデルファイルの取得例
+## 任意モデルの取得（Hugging Face）
 
-`download_model.py` で Hugging Face から取得できます（別リポジトリのモデル用）。
+`download_model.py` で任意の HF リポジトリをローカルに落とせます（`--repo-id` は必須）。
 
 ```bash
 pip install huggingface_hub
-python download_model.py
+python download_model.py --repo-id "組織またはユーザー/モデル名"
 ```
 
-ジオラマ用の既定パスは `models/u2netp/u2netp.onnx` と `models/mosaic-8/mosaic-8.onnx` です。
+ジオラマスタジオが参照する既定パスは `models/u2netp/u2netp.onnx` と `models/mosaic-8/mosaic-8.onnx` です。
 
 ## ライセンス・クレジット（公開サイト・再配布時）
 
@@ -103,6 +102,5 @@ python download_model.py
 |------|------|------|
 | `models/u2netp/` | U²-Net-P ONNX | README 上 **Apache License 2.0** |
 | `models/mosaic-8/` | Fast Neural Style（mosaic-8） | README 本文 **BSD-3-Clause**（YAML では apache 表記あり。本文の SPDX / License 節を参照） |
-| `models/background-removal/` | Trendyol 背景除去 | **`LICENSE` は CC BY-SA 4.0**。README 本文と差異がある場合は **LICENSE ファイルを優先**し、表示・派生物の条件に注意 |
 
 公開ページ（`index.html` / `diorama-studio.html`）のフッターにも短いクレジットを記載しています。

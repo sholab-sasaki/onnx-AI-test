@@ -8,17 +8,17 @@ from huggingface_hub import snapshot_download
 
 def main() -> int:
     p = argparse.ArgumentParser(
-        description="Download a Hugging Face repo snapshot (e.g. ONNX models) to a local folder."
+        description="Hugging Face のリポジトリをローカルに snapshot_download する（任意の ONNX 等）。"
     )
     p.add_argument(
         "--repo-id",
-        default="Trendyol/background-removal",
-        help='Hugging Face repo id (default: "Trendyol/background-removal")',
+        required=True,
+        help='Hugging Face の repo id（例: "Trendyol/background-removal"）',
     )
     p.add_argument(
         "--local-dir",
-        default="./models/background-removal",
-        help='Download destination (default: "./models/background-removal")',
+        default="./models/hf-snapshot",
+        help='保存先ディレクトリ（既定: "./models/hf-snapshot"）',
     )
     args = p.parse_args()
 
@@ -37,4 +37,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
