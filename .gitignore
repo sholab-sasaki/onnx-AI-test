@@ -6,5 +6,5 @@ models/**/.cache/
 .cursor/
 .specstory/
 .vscode/
-# 大きい ONNX は Git LFS か CI で配布する運用なら下のコメントを外す
-# *.onnx
+# Cloudflare Pages は静的ファイル 25 MiB/個 制限のため、168MB の背景除去 ONNX はリポジトリに含めない（download_model.py で取得）
+models/background-removal/model.onnx

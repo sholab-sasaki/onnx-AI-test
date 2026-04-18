@@ -66,6 +66,11 @@ git push -u origin main
 
 `main` へ push するたびに Cloudflare 側が再ビルド・公開します。公開 URL は `*.pages.dev` または独自ドメイン（プロジェクト設定で確認）。
 
+### Cloudflare のファイルサイズ制限（25 MiB）
+
+**Pages に載せられる静的ファイルは 1 ファイルあたり最大 25 MiB**です。  
+`models/background-removal/model.onnx`（約 168 MiB）は制限を超えるため **リポジトリに含めていません**（ジオラマ機能もこのファイルは不要）。必要なら `download_model.py` でローカルに取得してください。
+
 ### Git LFS について
 
 - **GitHub 上**に LFS オブジェクトが無いと、どの CI でも取得に失敗します。手元で一度: `git lfs push --all origin`
