@@ -301,20 +301,83 @@
     }
   }
 
+  function isHeicLikeFile(file) {
+    if (!file) return false;
+    var t = (file.type || "").toLowerCase();
+    if (t === "image/heic" || t === "image/heif") return true;
+    var n = (file.name || "").toLowerCase();
+    return n.endsWith(".heic") || n.endsWith(".heif");
+  }
+
+  function isAcceptableImageFile(file) {
+    if (!file) return false;
+    var t = file.type || "";
+    if (t.indexOf("image/") === 0) return true;
+    return isHeicLikeFile(file);
+  }
+
+  function getHeic2any() {
+    var w = typeof window !== "undefined" ? window : {};
+    var fn = w.heic2any;
+    if (typeof fn === "function") return fn;
+    if (fn && typeof fn.default === "function") return fn.default;
+    return null;
+  }
+
   function loadImageFromFile(file) {
     return new Promise(function (resolve, reject) {
-      if (!file || !file.type.match(/^image\//)) {
+      if (!isAcceptableImageFile(file)) {
         reject(new Error("画像ファイルを選んでください。"));
         return;
       }
+
+      if (isHeicLikeFile(file)) {
+        var h2a = getHeic2any();
+        if (!h2a) {
+          reject(
+            new Error(
+              "HEIC/HEIF 用ライブラリを読み込めませんでした。ページを再読み込みするか、JPEG/PNG で保存してから選んでください。"
+            )
+          );
+          return;
+        }
+        setStatus("HEIC/HEIF を JPEG に変換しています…");
+        h2a({ blob: file, toType: "image/jpeg", quality: 0.92 })
+          .then(function (out) {
+            var blob = Array.isArray(out) ? out[0] : out;
+            if (!blob) throw new Error("変換結果が空です。");
+            var url = URL.createObjectURL(blob);
+            var img = new Image();
+            img.onload = function () {
+              URL.revokeObjectURL(url);
+              resolve(img);
+            };
+            img.onerror = function () {
+              URL.revokeObjectURL(url);
+              reject(new Error("変換後の画像の読み込みに失敗しました。"));
+            };
+            img.src = url;
+          })
+          .catch(function (e) {
+            reject(new Error("HEIC/HEIF の変換に失敗しました: " + (e && e.message ? e.message : String(e))));
+          });
+        return;
+      }
+
       var reader = new FileReader();
       reader.onload = function () {
         var img = new Image();
-        img.onload = function () { resolve(img); };
-        img.onerror = function () { reject(new Error("画像のデコードに失敗しました。")); };
+        img.onload = function () {
+          resolve(img);
+        };
+        img.onerror = function () {
+          reject(new Error("画像のデコードに失敗しました。"));
+        };
         img.src = reader.result;
       };
-      reader.onerror = function () { reject(new Error("ファイルの読み込みに失敗しました。")); };
+      reader.onerror = function () {
+        reject(new Error("ファイルの読み込みに失敗しました。"));
+      };
       reader.readAsDataURL(file);
     });
   }

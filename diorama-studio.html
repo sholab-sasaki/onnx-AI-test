@@ -454,8 +454,8 @@
       <section class="flow-step" aria-labelledby="step1-label">
         <h2 class="flow-step__title" id="step1-label"><span class="num">1</span> 写真をアップロード</h2>
         <div class="upload-box">
-          <label for="photo-file">人物・動物などの写真（1枚）</label>
-          <input type="file" id="photo-file" accept="image/*" />
+          <label for="photo-file">人物・動物などの写真（1枚・JPEG/PNG/HEIC など）</label>
+          <input type="file" id="photo-file" accept="image/*,.heic,.heif" />
         </div>
         <details class="advanced" style="margin-top: 0.75rem;">
           <summary>サンプル画像で試す</summary>
@@ -509,7 +509,7 @@
             <option value="file">ファイルから選択</option>
           </select>
           <label for="bg-file">背景画像（ファイル）</label>
-          <input type="file" id="bg-file" accept="image/*" />
+          <input type="file" id="bg-file" accept="image/*,.heic,.heif" />
 
           <p class="muted" style="margin: 0.85rem 0 0.5rem;">
             ONNX は初回に自動取得し、ブラウザにキャッシュします。
@@ -545,9 +545,11 @@
     <p>
       <strong>クレジット:</strong>
       U²-Net-P（Apache 2.0）、mosaic-8 ONNX（BSD-3-Clause）。推論: ONNX Runtime Web（WASM）。
+      HEIC/HEIF の読み込みは <a href="https://github.com/alexcorvi/heic2any" rel="noopener noreferrer" target="_blank">heic2any</a>（MIT）でブラウザ内変換しています。
     </p>
   </footer>
   <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
   <script src="diorama-studio.js" defer></script>
 </body>
 </html>
