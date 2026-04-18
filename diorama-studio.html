@@ -3,47 +3,70 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ジオラマスタジオ（U²-Net-P + Mosaic）</title>
+  <title>ジオラマスタジオ</title>
   <style>
     :root {
-      --bg: #f4f4f6;
+      --bg: #eef0f4;
       --surface: #ffffff;
-      --text: #1a1a1e;
-      --muted: #5c5c66;
-      --border: #e2e2e8;
+      --text: #12141a;
+      --muted: #5c6370;
+      --border: #d8dce6;
       --accent: #2563eb;
       --accent-hover: #1d4ed8;
-      --shadow: 0 12px 40px rgba(15, 23, 42, 0.08);
+      --accent-soft: rgba(37, 99, 235, 0.08);
+      --shadow: 0 4px 24px rgba(15, 23, 42, 0.06);
+      --shadow-lg: 0 16px 48px rgba(15, 23, 42, 0.1);
+      --radius: 14px;
+      --step-num: #94a3b8;
     }
     @media (prefers-color-scheme: dark) {
       :root {
-        --bg: #0f1117;
-        --surface: #1a1d26;
+        --bg: #0c0e12;
+        --surface: #151821;
         --text: #f1f5f9;
         --muted: #94a3b8;
-        --border: #2d3340;
+        --border: #2a3142;
         --accent: #60a5fa;
         --accent-hover: #93c5fd;
-        --shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+        --accent-soft: rgba(96, 165, 250, 0.12);
+        --shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+        --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.45);
+        --step-num: #64748b;
       }
     }
     *, *::before, *::after { box-sizing: border-box; }
     body {
       margin: 0;
       min-height: 100vh;
-      font-family: system-ui, "Noto Sans JP", sans-serif;
+      font-family: system-ui, "Noto Sans JP", "Hiragino Sans", sans-serif;
       background: var(--bg);
       color: var(--text);
-      padding: 1rem;
-      line-height: 1.5;
+      padding: 1.25rem 1rem 2rem;
+      line-height: 1.55;
     }
-    h1 { font-size: 1.35rem; margin: 0 0 0.5rem; }
+    .page-head {
+      max-width: 1120px;
+      margin: 0 auto 1.25rem;
+    }
+    .page-head h1 {
+      font-size: clamp(1.35rem, 2.5vw, 1.6rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin: 0 0 0.35rem;
+    }
+    .page-head .tagline {
+      margin: 0;
+      font-size: 0.9375rem;
+      color: var(--muted);
+      max-width: 42em;
+    }
     .layout {
-      max-width: 1100px;
+      max-width: 1120px;
       margin: 0 auto;
       display: grid;
-      gap: 1rem;
-      grid-template-columns: 1fr minmax(280px, 340px);
+      gap: 1.25rem;
+      grid-template-columns: 1fr minmax(300px, 380px);
+      align-items: start;
     }
     @media (max-width: 900px) {
       .layout { grid-template-columns: 1fr; }
@@ -51,45 +74,68 @@
     .card {
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 12px;
+      border-radius: var(--radius);
       box-shadow: var(--shadow);
-      padding: 1.25rem;
+      padding: 1.35rem;
     }
-    .muted { color: var(--muted); font-size: 0.875rem; margin: 0 0 1rem; }
-    label { display: block; font-size: 0.8125rem; font-weight: 600; margin: 0.75rem 0 0.25rem; }
-    input[type="file"] { font-size: 0.8125rem; max-width: 100%; }
-    input[type="range"] { width: 100%; }
+    .card--preview {
+      box-shadow: var(--shadow-lg);
+    }
+    .card--panel {
+      position: sticky;
+      top: 1rem;
+    }
+    .muted { color: var(--muted); font-size: 0.8125rem; margin: 0; line-height: 1.5; }
+    label { display: block; font-size: 0.8125rem; font-weight: 600; margin: 0 0 0.35rem; color: var(--text); }
+    input[type="file"] {
+      font-size: 0.8125rem;
+      max-width: 100%;
+    }
+    input[type="range"] { width: 100%; accent-color: var(--accent); }
     .row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
     button {
       font: inherit;
-      padding: 0.5rem 1rem;
-      border-radius: 8px;
+      padding: 0.55rem 1rem;
+      border-radius: 10px;
       border: 1px solid var(--border);
       background: var(--surface);
       color: var(--text);
       cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
     }
+    button:hover:not(:disabled) { background: var(--accent-soft); border-color: var(--accent); }
     button.primary {
       background: var(--accent);
       color: #fff;
       border-color: var(--accent);
+      font-weight: 600;
+      padding: 0.65rem 1.15rem;
+      width: 100%;
     }
-    button.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
-    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    button.primary:hover:not(:disabled) {
+      background: var(--accent-hover);
+      border-color: var(--accent-hover);
+    }
+    button.ghost { background: transparent; }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
     #viewport-wrap {
       overflow: hidden;
       max-height: min(78vh, 900px);
-      min-height: 120px;
+      min-height: 140px;
       display: flex;
       align-items: center;
       justify-content: center;
-      border: 1px dashed var(--border);
-      border-radius: 8px;
-      background: repeating-conic-gradient(#e8e8ec 0% 25%, #f4f4f6 0% 50%) 50% / 16px 16px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background:
+        linear-gradient(145deg, rgba(255,255,255,0.04) 0%, transparent 50%),
+        repeating-conic-gradient(#e4e6ec 0% 25%, #f0f2f6 0% 50%) 50% / 14px 14px;
     }
     @media (prefers-color-scheme: dark) {
       #viewport-wrap {
-        background: repeating-conic-gradient(#252830 0% 25%, #1a1d26 0% 50%) 50% / 16px 16px;
+        background:
+          linear-gradient(145deg, rgba(255,255,255,0.03) 0%, transparent 50%),
+          repeating-conic-gradient(#1e2329 0% 25%, #161a22 0% 50%) 50% / 14px 14px;
       }
     }
     #stage {
@@ -101,42 +147,138 @@
       height: auto !important;
       object-fit: contain;
       touch-action: none;
+      border-radius: 4px;
     }
     #stage.can-grab { cursor: grab; }
     #stage.grabbing { cursor: grabbing; }
     #stage.can-rotate { cursor: alias; }
     #stage.can-scale { cursor: nwse-resize; }
-    #status { font-size: 0.875rem; margin-top: 0.75rem; white-space: pre-wrap; word-break: break-word; }
+    .hint-bar {
+      margin-top: 0.75rem;
+      padding: 0.6rem 0.75rem;
+      font-size: 0.78rem;
+      color: var(--muted);
+      background: var(--accent-soft);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    .hint-bar kbd {
+      font-size: 0.72rem;
+      padding: 0.1rem 0.35rem;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+    }
+    #status {
+      font-size: 0.8125rem;
+      margin-top: 0.65rem;
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: var(--muted);
+    }
     a { color: var(--accent); }
     .site-footer {
-      max-width: 1100px;
-      margin: 1.25rem auto 0;
-      padding: 0 1rem;
-      font-size: 0.75rem;
+      max-width: 1120px;
+      margin: 1.5rem auto 0;
+      padding: 0 0.25rem;
+      font-size: 0.7rem;
       color: var(--muted);
       line-height: 1.55;
     }
     .site-footer strong { color: var(--text); font-weight: 600; }
+
+    .flow-step {
+      margin-bottom: 1.25rem;
+    }
+    .flow-step:last-child { margin-bottom: 0; }
+    .flow-step__title {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.6875rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--step-num);
+      margin: 0 0 0.65rem;
+    }
+    .flow-step__title span.num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.35rem;
+      height: 1.35rem;
+      border-radius: 50%;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 0.75rem;
+      font-weight: 800;
+    }
+    .upload-box {
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 1rem 1rem 0.85rem;
+      background: var(--bg);
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .upload-box:focus-within {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
     .onnx-status {
-      font-size: 0.875rem;
+      font-size: 0.8125rem;
       margin: 0 0 0.75rem;
-      padding: 0.55rem 0.7rem;
-      border-radius: 8px;
+      padding: 0.5rem 0.65rem;
+      border-radius: 10px;
       border: 1px solid var(--border);
       line-height: 1.45;
     }
     .onnx-status--ok {
-      background: rgba(34, 197, 94, 0.12);
+      background: rgba(34, 197, 94, 0.1);
       border-color: rgba(34, 197, 94, 0.35);
-      color: var(--text);
     }
     .onnx-status--err {
       background: rgba(239, 68, 68, 0.08);
       border-color: rgba(239, 68, 68, 0.28);
-      color: var(--text);
     }
+
+    details.advanced {
+      margin-top: 0.5rem;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 0.5rem 0.75rem 0.65rem;
+      background: var(--bg);
+    }
+    details.advanced summary {
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.875rem;
+      user-select: none;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    details.advanced summary::-webkit-details-marker { display: none; }
+    details.advanced summary::before {
+      content: "▸";
+      font-size: 0.7rem;
+      opacity: 0.6;
+      transition: transform 0.15s;
+    }
+    details.advanced[open] summary::before {
+      transform: rotate(90deg);
+    }
+    details.advanced .advanced-body {
+      margin-top: 0.85rem;
+      padding-top: 0.85rem;
+      border-top: 1px solid var(--border);
+    }
+    details.advanced label { margin-top: 0.65rem; }
+    details.advanced label:first-of-type { margin-top: 0; }
+
     #onnx-manual-wrap {
-      margin-bottom: 0.75rem;
+      margin-top: 0.75rem;
       border: 1px dashed var(--border);
       border-radius: 8px;
       padding: 0.5rem 0.65rem 0.65rem;
@@ -144,100 +286,139 @@
     #onnx-manual-wrap summary {
       cursor: pointer;
       font-weight: 600;
-      font-size: 0.875rem;
+      font-size: 0.8125rem;
       user-select: none;
     }
-    #onnx-manual-wrap[open] summary {
-      margin-bottom: 0.5rem;
+    #onnx-manual-wrap[open] summary { margin-bottom: 0.5rem; }
+
+    .panel-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 1rem 0;
     }
+    select {
+      width: 100%;
+      font: inherit;
+      padding: 0.45rem 0.5rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+    }
+    .back-link { margin-top: 1rem; font-size: 0.8125rem; }
   </style>
 </head>
 <body>
-  <main>
+  <header class="page-head">
     <h1>ジオラマスタジオ</h1>
-    <p class="muted">
-      写真から人物を切り抜き（U²-Net-P）、モザイク風スタイル（fast neural style）を適用し、背景に合成します。
-      <strong>ONNX はサイトに同梱された <code>models/</code> から自動で読み込みます</strong>（手動選択はオフラインや失敗時のみ）。
+    <p class="tagline">
+      写真をアップロードすると、人物を切り抜いてモザイク風スタイルを当て、背景に合成します。
     </p>
-    <div class="layout">
-      <div class="card">
-        <div id="viewport-wrap">
-          <canvas id="stage" width="800" height="600" aria-label="合成プレビュー"></canvas>
-        </div>
-        <p class="muted" style="margin-top: 0.5rem; margin-bottom: 0;">
-          <strong>切り抜き後:</strong> 画像上をドラッグで移動 / <kbd>Shift</kbd>+ドラッグで回転 /
-          <kbd>Ctrl</kbd>（Mac は <kbd>⌘</kbd>）+ドラッグで拡大 / ホイールで拡大縮小
-        </p>
-        <p id="status">初期化中…</p>
+  </header>
+
+  <div class="layout">
+    <div class="card card--preview">
+      <div id="viewport-wrap">
+        <canvas id="stage" width="800" height="600" aria-label="合成プレビュー"></canvas>
       </div>
-      <div class="card">
-        <p id="onnx-load-status" class="onnx-status" aria-live="polite">
-          サーバー上の ONNX を読み込んでいます…
-        </p>
+      <p class="hint-bar">
+        <strong style="color: var(--text);">合成後:</strong>
+        ドラッグで移動 · <kbd>Shift</kbd>+ドラッグで回転 · <kbd>Ctrl</kbd> / <kbd>⌘</kbd>+ドラッグで拡大 · ホイールで拡大縮小
+      </p>
+      <p id="status">初期化中…</p>
+    </div>
 
-        <details id="onnx-manual-wrap">
-          <summary>手動で ONNX を指定する（自動読み込みに失敗したとき・オフライン）</summary>
-          <label for="u2net-file">U²-Net-P（<code>u2netp.onnx</code>）</label>
-          <input type="file" id="u2net-file" accept=".onnx,application/octet-stream,*/*" />
+    <div class="card card--panel">
+      <p id="onnx-load-status" class="onnx-status" aria-live="polite">
+        サーバー上の ONNX を読み込んでいます…
+      </p>
 
-          <label for="mosaic-file">モザイクスタイル（<code>mosaic-8.onnx</code>）</label>
-          <input type="file" id="mosaic-file" accept=".onnx,application/octet-stream,*/*" />
+      <section class="flow-step" aria-labelledby="step1-label">
+        <h2 class="flow-step__title" id="step1-label"><span class="num">1</span> 写真をアップロード</h2>
+        <div class="upload-box">
+          <label for="photo-file">人物・動物などの写真（1枚）</label>
+          <input type="file" id="photo-file" accept="image/*" />
+        </div>
+        <details class="advanced" style="margin-top: 0.75rem;">
+          <summary>サンプル画像で試す</summary>
+          <div class="advanced-body">
+            <label for="photo-preset">同梱サンプル</label>
+            <select id="photo-preset" aria-label="サンプル画像">
+              <option value="pig" selected>pig_image.png（ブタ）</option>
+              <option value="synthetic">デモ用（Canvas 生成）</option>
+              <option value="file">アップロードした写真</option>
+            </select>
+          </div>
         </details>
+      </section>
 
-        <p class="muted" style="margin-top: 0.75rem;">
-          初回アクセスで取得した ONNX はブラウザの <strong>IndexedDB</strong> に保存され、次回以降は再ダウンロードを省略します（手動で選んだファイルは保存しません）。
-        </p>
-        <div class="row">
-          <button type="button" id="btn-clear-model-cache">保存した ONNX キャッシュを削除</button>
-        </div>
+      <section class="flow-step" aria-labelledby="step2-label">
+        <h2 class="flow-step__title" id="step2-label"><span class="num">2</span> 合成を実行</h2>
+        <button type="button" class="primary" id="btn-process" disabled>実行</button>
+      </section>
 
-        <label for="photo-preset">人物写真のプリセット</label>
-        <select id="photo-preset" aria-label="人物写真のプリセット">
-          <option value="pig" selected>同梱（<code>image/pig_image.png</code>）</option>
-          <option value="synthetic">デモ用（オフライン可・Canvas で生成）</option>
-          <option value="file">ファイルから選択</option>
-        </select>
-
-        <label for="photo-file">人物写真（ファイル）</label>
-        <input type="file" id="photo-file" accept="image/*" />
-
-        <label for="bg-preset">背景のプリセット</label>
-        <select id="bg-preset" aria-label="背景のプリセット">
-          <option value="bg-03" selected>同梱（<code>image/back_Image_03.png</code>・既定）</option>
-          <option value="bg-02">同梱（<code>image/back-image-02.png</code>）</option>
-          <option value="bg-01">同梱（<code>image/back_image_01.png</code>）</option>
-          <option value="synthetic">デモ用グラデーション（オフライン可）</option>
-          <option value="file">ファイルから選択</option>
-        </select>
-
-        <label for="bg-file">背景画像（ファイル）</label>
-        <input type="file" id="bg-file" accept="image/*" />
-
-        <div class="row" style="margin-top: 1rem;">
-          <button type="button" class="primary" id="btn-process" disabled>切り抜き＋スタイル＋合成</button>
-          <button type="button" id="btn-dl-png" disabled>PNG で保存</button>
-        </div>
-
+      <section class="flow-step" aria-labelledby="step3-label">
+        <h2 class="flow-step__title" id="step3-label"><span class="num">3</span> 画像の位置を調整</h2>
         <label for="sl-x">位置 X <span id="val-x"></span></label>
         <input type="range" id="sl-x" min="-400" max="400" value="0" />
         <label for="sl-y">位置 Y <span id="val-y"></span></label>
         <input type="range" id="sl-y" min="-400" max="400" value="0" />
         <label for="sl-scale">拡大率 <span id="val-scale"></span></label>
         <input type="range" id="sl-scale" min="20" max="200" value="100" />
-        <label for="sl-rot">回転（度）<span id="val-rot"></span></label>
+        <label for="sl-rot">回転 <span id="val-rot"></span></label>
         <input type="range" id="sl-rot" min="-180" max="180" value="0" />
+      </section>
 
-        <p class="muted" style="margin-top: 1rem;">
-          <a href="index.html">← onnx-AI-test トップ</a>
-        </p>
-      </div>
+      <section class="flow-step" aria-labelledby="step4-label">
+        <h2 class="flow-step__title" id="step4-label"><span class="num">4</span> 保存</h2>
+        <button type="button" class="primary" id="btn-dl-png" disabled>PNG で保存</button>
+      </section>
+
+      <div class="panel-divider"></div>
+
+      <details class="advanced">
+        <summary>背景・その他のオプション</summary>
+        <div class="advanced-body">
+          <p class="muted" style="margin-bottom: 0.75rem;">
+            既定はコンクリート調のステージ（<code>back-image-02.png</code>）。別の同梱背景や自分の画像に切り替えられます。
+          </p>
+          <label for="bg-preset">背景プリセット</label>
+          <select id="bg-preset" aria-label="背景プリセット">
+            <option value="bg-02" selected>同梱（back-image-02・既定）</option>
+            <option value="bg-03">同梱（back_Image_03）</option>
+            <option value="bg-01">同梱（back_image_01）</option>
+            <option value="synthetic">デモ用グラデーション</option>
+            <option value="file">ファイルから選択</option>
+          </select>
+          <label for="bg-file">背景画像（ファイル）</label>
+          <input type="file" id="bg-file" accept="image/*" />
+
+          <p class="muted" style="margin: 0.85rem 0 0.5rem;">
+            ONNX は初回に自動取得し、ブラウザにキャッシュします。
+          </p>
+          <div class="row">
+            <button type="button" id="btn-clear-model-cache">ONNX キャッシュを削除</button>
+          </div>
+          <details id="onnx-manual-wrap">
+            <summary>手動で ONNX を指定（失敗時・オフライン）</summary>
+            <label for="u2net-file">U²-Net-P（u2netp.onnx）</label>
+            <input type="file" id="u2net-file" accept=".onnx,application/octet-stream,*/*" />
+            <label for="mosaic-file">モザイクスタイル（mosaic-8.onnx）</label>
+            <input type="file" id="mosaic-file" accept=".onnx,application/octet-stream,*/*" />
+          </details>
+        </div>
+      </details>
+
+      <p class="back-link muted">
+        <a href="index.html">← onnx-AI-test トップ</a>
+      </p>
     </div>
-  </main>
+  </div>
+
   <footer class="site-footer">
     <p>
       <strong>クレジット:</strong>
-      U²-Net-P（Apache License 2.0）、mosaic-8 スタイル転移 ONNX（BSD-3-Clause、ONNX Model Zoo 由来）。推論: ONNX Runtime Web（WASM）。
-      デモ画像は Canvas 生成または当プロジェクトで用意した素材です。詳細はリポジトリの README（ライセンス・クレジット）を参照してください。
+      U²-Net-P（Apache 2.0）、mosaic-8 ONNX（BSD-3-Clause）。推論: ONNX Runtime Web（WASM）。
     </p>
   </footer>
   <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>

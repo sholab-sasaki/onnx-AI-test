@@ -6,6 +6,8 @@
   var U2NET_URL = new URL("models/u2netp/u2netp.onnx", window.location.href).href;
   var MOSAIC_URL = new URL("models/mosaic-8/mosaic-8.onnx", window.location.href).href;
   var PIG_SAMPLE_URL = new URL("image/pig_image.png", window.location.href).href;
+  /** 同梱背景の既定（フォールバック時もこれを優先） */
+  var BG_DEFAULT_KEY = "bg-02";
   var BG_PRESET_URLS = {
     "bg-03": new URL("image/back_Image_03.png", window.location.href).href,
     "bg-02": new URL("image/back-image-02.png", window.location.href).href,
@@ -217,7 +219,7 @@
       errMo = e2 && e2.message ? e2.message : String(e2);
     }
     if (okU2 && okMosaic) {
-      setStatus("モデル準備完了。写真と背景を選んで「切り抜き＋スタイル＋合成」を押してください。");
+      setStatus("モデル準備完了。写真と背景を選んで「実行」を押してください。");
       updateOnnxLoadBanner(true, null);
     } else {
       var parts = [];
@@ -416,7 +418,7 @@
   }
 
   async function applyBgPreset(mode) {
-    var m = mode || (bgPresetEl ? bgPresetEl.value : "bg-03");
+    var m = mode || (bgPresetEl ? bgPresetEl.value : BG_DEFAULT_KEY);
     if (m === "file") {
       bgImage = null;
       if (bgFileEl) bgFileEl.value = "";
@@ -433,12 +435,12 @@
         onBgReady();
         return;
       } catch (e) {
-        if (m !== "bg-03") {
-          if (bgPresetEl) bgPresetEl.value = "bg-03";
-          setStatus("選択した背景が見つからないため、既定（back_Image_03）に切り替えます…");
+        if (m !== BG_DEFAULT_KEY) {
+          if (bgPresetEl) bgPresetEl.value = BG_DEFAULT_KEY;
+          setStatus("選択した背景が見つからないため、既定（back-image-02）に切り替えます…");
           try {
-            bgImage = await loadImageUrl(BG_PRESET_URLS["bg-03"]);
-            setStatus("背景: 既定の back_Image_03.png を読み込みました。");
+            bgImage = await loadImageUrl(BG_PRESET_URLS[BG_DEFAULT_KEY]);
+            setStatus("背景: 既定の back-image-02.png を読み込みました。");
             onBgReady();
             return;
           } catch (e2) {}
@@ -895,7 +897,7 @@
     if (photoPresetEl) photoPresetEl.value = "file";
     loadImageFromFile(f).then(function (img) {
       photoImage = img;
-      setStatus("写真を読み込みました。" + (u2Session && mosaicSession ? "「切り抜き＋スタイル＋合成」を押してください。" : ""));
+      setStatus("写真を読み込みました。" + (u2Session && mosaicSession ? "「実行」を押してください。" : ""));
       syncProcessButton();
     }).catch(function (e) {
       setStatus(e.message || String(e));
@@ -1107,7 +1109,7 @@
 
   async function bootstrap() {
     await applyPhotoPreset("pig");
-    await applyBgPreset(bgPresetEl ? bgPresetEl.value : "bg-03");
+    await applyBgPreset(bgPresetEl ? bgPresetEl.value : BG_DEFAULT_KEY);
     await tryAutoLoadFromUrls();
   }
   bootstrap();
