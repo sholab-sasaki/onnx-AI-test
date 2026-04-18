@@ -69,6 +69,18 @@
     scale0: 100
   };
 
+  /** キーボード無し環境用: 移動 / 回転 / 拡大（UI ボタン） */
+  var interactionMode = "move";
+  /** 二本指ジェスチャー（ピンチで拡大・回転） */
+  var stagePointers = new Map();
+  var pinch = {
+    active: false,
+    dist0: 0,
+    ang0: 0,
+    scale0: 100,
+    rot0: 0
+  };
+
   var lastPointerPos = { x: 0, y: 0 };
 
   function setStatus(msg) {
@@ -701,14 +713,45 @@
     };
   }
 
-  function canvasPointFromEvent(ev) {
+  function canvasPointFromClientXY(clientX, clientY) {
     var rect = stage.getBoundingClientRect();
     var sx = stage.width / Math.max(rect.width, 1e-6);
     var sy = stage.height / Math.max(rect.height, 1e-6);
     return {
-      x: (ev.clientX - rect.left) * sx,
-      y: (ev.clientY - rect.top) * sy
+      x: (clientX - rect.left) * sx,
+      y: (clientY - rect.top) * sy
     };
+  }
+
+  function canvasPointFromEvent(ev) {
+    return canvasPointFromClientXY(ev.clientX, ev.clientY);
+  }
+
+  function effectiveInteractionMode(ev) {
+    if (ev.shiftKey) return "rotate";
+    if (ev.ctrlKey || ev.metaKey) return "scale";
+    return interactionMode;
+  }
+
+  function dist2d(a, b) {
+    var dx = b.x - a.x;
+    var dy = b.y - a.y;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  function twoCanvasPointsFromPointers() {
+    var arr = [];
+    stagePointers.forEach(function (v) {
+      arr.push(canvasPointFromClientXY(v.x, v.y));
+    });
+    if (arr.length < 2) return null;
+    return [arr[0], arr[1]];
+  }
+
+  function pinchMidpointHitsPerson(pts) {
+    var mx = (pts[0].x + pts[1].x) / 2;
+    var my = (pts[0].y + pts[1].y) / 2;
+    return hitTestPerson(mx, my);
   }
 
   function hitTestPerson(mx, my) {
@@ -740,7 +783,7 @@
   }
 
   function updateStageCursorClass(ev) {
-    if (!stage || drag.active) return;
+    if (!stage || drag.active || pinch.active) return;
     if (!lastPersonRgba) {
       stage.classList.remove("can-grab", "can-rotate", "can-scale", "grabbing");
       return;
@@ -749,8 +792,9 @@
     var hit = hitTestPerson(pt.x, pt.y);
     stage.classList.remove("can-grab", "can-rotate", "can-scale");
     if (!hit) return;
-    if (ev.shiftKey) stage.classList.add("can-rotate");
-    else if (ev.ctrlKey || ev.metaKey) stage.classList.add("can-scale");
+    var modeEff = effectiveInteractionMode(ev);
+    if (modeEff === "rotate") stage.classList.add("can-rotate");
+    else if (modeEff === "scale") stage.classList.add("can-scale");
     else stage.classList.add("can-grab");
   }
 
@@ -880,7 +924,9 @@
       lastPersonW = U2_BOX;
       lastPersonH = U2_BOX;
 
-      setStatus("合成が完了しました。左のプレビュー上でドラッグして位置を調整できます（Shift＋ドラッグで回転、Ctrl／⌘＋ドラッグ・ホイールで拡大縮小）。");
+      setStatus(
+        "合成が完了しました。プレビュー上でドラッグして調整できます（スマホは下の「移動／回転／拡大」または二本指ピンチ）。PC は Shift／Ctrl＋ドラッグ・ホイールも使えます。"
+      );
       drawComposite();
       if (btnDl) btnDl.disabled = false;
     } catch (e) {
@@ -981,22 +1027,152 @@
   window.addEventListener("keydown", refreshCursorFromKeys);
   window.addEventListener("keyup", refreshCursorFromKeys);
 
+  function wireInteractionModeButtons() {
+    var root = document.getElementById("interaction-mode");
+    if (!root) return;
+    var buttons = root.querySelectorAll("button[data-mode]");
+    function syncActive(mode) {
+      buttons.forEach(function (btn) {
+        var m = btn.getAttribute("data-mode");
+        var on = m === mode;
+        btn.classList.toggle("is-active", on);
+        btn.setAttribute("aria-pressed", on ? "true" : "false");
+      });
+    }
+    buttons.forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        interactionMode = btn.getAttribute("data-mode") || "move";
+        syncActive(interactionMode);
+        updateStageCursorClass({
+          clientX: lastPointerPos.x,
+          clientY: lastPointerPos.y,
+          shiftKey: false,
+          ctrlKey: false,
+          metaKey: false
+        });
+      });
+    });
+    syncActive(interactionMode);
+  }
+
   if (stage) {
     stage.addEventListener("pointermove", function (ev) {
       lastPointerPos.x = ev.clientX;
       lastPointerPos.y = ev.clientY;
-      if (!drag.active) updateStageCursorClass(ev);
+      if (stagePointers.has(ev.pointerId)) {
+        stagePointers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+      }
+
+      if (pinch.active && stagePointers.size >= 2) {
+        var ptsP = twoCanvasPointsFromPointers();
+        if (!ptsP || !slScale || !slRot) return;
+        var d1 = dist2d(ptsP[0], ptsP[1]);
+        if (pinch.dist0 < 1e-6) return;
+        var nextSc = pinch.scale0 * (d1 / pinch.dist0);
+        slScale.value = String(
+          Math.round(clamp(nextSc, parseFloat(slScale.min), parseFloat(slScale.max)))
+        );
+        var ang1 = Math.atan2(ptsP[1].y - ptsP[0].y, ptsP[1].x - ptsP[0].x);
+        var deltaRad = ang1 - pinch.ang0;
+        if (deltaRad > Math.PI) deltaRad -= 2 * Math.PI;
+        if (deltaRad < -Math.PI) deltaRad += 2 * Math.PI;
+        var newRot = pinch.rot0 + (deltaRad * 180) / Math.PI;
+        slRot.value = String(
+          Math.round(clamp(newRot, parseFloat(slRot.min), parseFloat(slRot.max)))
+        );
+        updateSliderLabels();
+        drawComposite();
+        ev.preventDefault();
+        return;
+      }
+
+      if (drag.active && drag.mode) {
+        var pt = canvasPointFromEvent(ev);
+        var t = getTransformParams();
+        if (!t || !slX || !slY || !slScale || !slRot) return;
+        if (drag.mode === "move") {
+          var dx = pt.x - drag.lastX;
+          var dy = pt.y - drag.lastY;
+          slX.value = String(
+            clamp(parseFloat(slX.value) + dx, parseFloat(slX.min), parseFloat(slX.max))
+          );
+          slY.value = String(
+            clamp(parseFloat(slY.value) + dy, parseFloat(slY.min), parseFloat(slY.max))
+          );
+          drag.lastX = pt.x;
+          drag.lastY = pt.y;
+        } else if (drag.mode === "rotate") {
+          var aNow = Math.atan2(pt.y - t.cy, pt.x - t.cx);
+          var deltaR = aNow - drag.angle0;
+          if (deltaR > Math.PI) deltaR -= 2 * Math.PI;
+          if (deltaR < -Math.PI) deltaR += 2 * Math.PI;
+          var newRot2 = drag.rot0 + (deltaR * 180) / Math.PI;
+          slRot.value = String(
+            Math.round(clamp(newRot2, parseFloat(slRot.min), parseFloat(slRot.max)))
+          );
+        } else if (drag.mode === "scale") {
+          var dxs = pt.x - t.cx;
+          var dys = pt.y - t.cy;
+          var d1s = Math.sqrt(dxs * dxs + dys * dys);
+          if (drag.dist0 < 1e-6) return;
+          var next2 = drag.scale0 * (d1s / drag.dist0);
+          slScale.value = String(
+            Math.round(clamp(next2, parseFloat(slScale.min), parseFloat(slScale.max)))
+          );
+        }
+        updateSliderLabels();
+        drawComposite();
+        return;
+      }
+
+      if (!drag.active && !pinch.active) updateStageCursorClass(ev);
     });
     stage.addEventListener("pointerleave", function () {
-      if (!drag.active) {
+      if (!drag.active && !pinch.active) {
         stage.classList.remove("can-grab", "can-rotate", "can-scale");
       }
     });
     stage.addEventListener("pointerdown", function (ev) {
       if (ev.button !== 0) return;
       if (!lastPersonRgba) return;
+
+      stagePointers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+
+      if (stagePointers.size === 2) {
+        ev.preventDefault();
+        if (drag.active) {
+          drag.active = false;
+          drag.mode = null;
+          stage.classList.remove("grabbing");
+        }
+        var pts2 = twoCanvasPointsFromPointers();
+        if (!pts2 || !pinchMidpointHitsPerson(pts2)) {
+          stagePointers.delete(ev.pointerId);
+          return;
+        }
+        var d0 = dist2d(pts2[0], pts2[1]);
+        if (d0 < 8) {
+          stagePointers.delete(ev.pointerId);
+          return;
+        }
+        pinch.active = true;
+        pinch.dist0 = d0;
+        pinch.ang0 = Math.atan2(pts2[1].y - pts2[0].y, pts2[1].x - pts2[0].x);
+        pinch.scale0 = parseFloat(slScale && slScale.value ? slScale.value : "100") || 100;
+        pinch.rot0 = parseFloat(slRot && slRot.value ? slRot.value : "0") || 0;
+        try {
+          stage.setPointerCapture(ev.pointerId);
+        } catch (e2) {}
+        return;
+      }
+
+      if (stagePointers.size !== 1) return;
+
       var pt = canvasPointFromEvent(ev);
-      if (!hitTestPerson(pt.x, pt.y)) return;
+      if (!hitTestPerson(pt.x, pt.y)) {
+        stagePointers.delete(ev.pointerId);
+        return;
+      }
       ev.preventDefault();
       drag.active = true;
       stage.classList.add("grabbing");
@@ -1005,13 +1181,15 @@
       if (!t) {
         drag.active = false;
         stage.classList.remove("grabbing");
+        stagePointers.delete(ev.pointerId);
         return;
       }
-      if (ev.shiftKey) {
+      var modeEff = effectiveInteractionMode(ev);
+      if (modeEff === "rotate") {
         drag.mode = "rotate";
         drag.angle0 = Math.atan2(pt.y - t.cy, pt.x - t.cx);
         drag.rot0 = parseFloat(slRot && slRot.value ? slRot.value : "0") || 0;
-      } else if (ev.ctrlKey || ev.metaKey) {
+      } else if (modeEff === "scale") {
         drag.mode = "scale";
         var dx0 = pt.x - t.cx;
         var dy0 = pt.y - t.cy;
@@ -1027,49 +1205,16 @@
         stage.setPointerCapture(ev.pointerId);
       } catch (e2) {}
     });
-    stage.addEventListener("pointermove", function (ev) {
-      if (!drag.active || !drag.mode) return;
-      var pt = canvasPointFromEvent(ev);
-      var t = getTransformParams();
-      if (!t || !slX || !slY || !slScale || !slRot) return;
-      if (drag.mode === "move") {
-        var dx = pt.x - drag.lastX;
-        var dy = pt.y - drag.lastY;
-        slX.value = String(
-          clamp(parseFloat(slX.value) + dx, parseFloat(slX.min), parseFloat(slX.max))
-        );
-        slY.value = String(
-          clamp(parseFloat(slY.value) + dy, parseFloat(slY.min), parseFloat(slY.max))
-        );
-        drag.lastX = pt.x;
-        drag.lastY = pt.y;
-      } else if (drag.mode === "rotate") {
-        var aNow = Math.atan2(pt.y - t.cy, pt.x - t.cx);
-        var deltaRad = aNow - drag.angle0;
-        if (deltaRad > Math.PI) deltaRad -= 2 * Math.PI;
-        if (deltaRad < -Math.PI) deltaRad += 2 * Math.PI;
-        var newRot = drag.rot0 + (deltaRad * 180) / Math.PI;
-        slRot.value = String(
-          Math.round(clamp(newRot, parseFloat(slRot.min), parseFloat(slRot.max)))
-        );
-      } else if (drag.mode === "scale") {
-        var dxs = pt.x - t.cx;
-        var dys = pt.y - t.cy;
-        var d1 = Math.sqrt(dxs * dxs + dys * dys);
-        if (drag.dist0 < 1e-6) return;
-        var next = drag.scale0 * (d1 / drag.dist0);
-        slScale.value = String(
-          Math.round(clamp(next, parseFloat(slScale.min), parseFloat(slScale.max)))
-        );
+    function onStagePointerUp(ev) {
+      if (ev && ev.pointerId != null) {
+        stagePointers.delete(ev.pointerId);
+        if (pinch.active && stagePointers.size < 2) pinch.active = false;
       }
-      updateSliderLabels();
-      drawComposite();
-    });
-    function endPointerDrag(ev) {
-      if (!drag.active) return;
-      drag.active = false;
-      drag.mode = null;
-      stage.classList.remove("grabbing");
+      if (drag.active) {
+        drag.active = false;
+        drag.mode = null;
+        stage.classList.remove("grabbing");
+      }
       if (ev && ev.pointerId != null) {
         try {
           stage.releasePointerCapture(ev.pointerId);
@@ -1084,8 +1229,8 @@
       };
       updateStageCursorClass(ev2);
     }
-    stage.addEventListener("pointerup", endPointerDrag);
-    stage.addEventListener("pointercancel", endPointerDrag);
+    stage.addEventListener("pointerup", onStagePointerUp);
+    stage.addEventListener("pointercancel", onStagePointerUp);
     stage.addEventListener(
       "wheel",
       function (ev) {
@@ -1126,6 +1271,7 @@
   });
 
   updateSliderLabels();
+  wireInteractionModeButtons();
 
   async function bootstrap() {
     await applyPhotoPreset("pig");

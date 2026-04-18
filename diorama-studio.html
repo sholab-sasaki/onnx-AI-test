@@ -131,6 +131,7 @@
         linear-gradient(145deg, rgba(255,255,255,0.04) 0%, transparent 50%),
         repeating-conic-gradient(#e4e6ec 0% 25%, #f0f2f6 0% 50%) 50% / 14px 14px;
       position: relative;
+      touch-action: none;
     }
     #viewport-wrap.is-processing {
       pointer-events: none;
@@ -173,6 +174,8 @@
       object-fit: contain;
       touch-action: none;
       border-radius: 4px;
+      -webkit-user-select: none;
+      user-select: none;
     }
     #stage.can-grab { cursor: grab; }
     #stage.grabbing { cursor: grabbing; }
@@ -332,6 +335,34 @@
     }
     .back-link { margin-top: 1rem; font-size: 0.8125rem; }
 
+    #interaction-mode {
+      display: flex;
+      gap: 0.35rem;
+      flex-wrap: wrap;
+      margin-top: 0.65rem;
+    }
+    #interaction-mode .interaction-mode-btn {
+      flex: 1;
+      min-width: 4.5rem;
+      padding: 0.45rem 0.5rem;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+    }
+    #interaction-mode .interaction-mode-btn.is-active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    #interaction-mode .interaction-mode-btn:hover:not(.is-active) {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+    }
+
     button.primary.is-busy {
       cursor: wait;
       position: relative;
@@ -382,8 +413,8 @@
       </div>
       <p class="hint-bar">
         <strong style="color: var(--text);">合成後:</strong>
-        切り抜き画像を<strong>ドラッグ</strong>して移動 · <kbd>Shift</kbd>+ドラッグで回転 ·
-        <kbd>Ctrl</kbd> / <kbd>⌘</kbd>+ドラッグで拡大 · ホイールで拡大縮小
+        切り抜きを<strong>ドラッグ</strong>して移動（スマホは「移動／回転／拡大」切替、または<strong>二本指</strong>でピンチ・回転）。
+        PC は <kbd>Shift</kbd>／<kbd>Ctrl</kbd>＋ドラッグ・ホイールも可。
       </p>
       <p id="status">初期化中…</p>
     </div>
@@ -418,11 +449,15 @@
       </section>
 
       <section class="flow-step" aria-labelledby="step3-label">
-        <h2 class="flow-step__title" id="step3-label"><span class="num">3</span> 位置を調整（ドラッグ）</h2>
-        <p class="muted" style="margin: 0;">
-          合成後、左のプレビュー上で切り抜き画像を<strong>ドラッグ</strong>して動かせます。
-          <kbd>Shift</kbd>＋ドラッグで回転、<kbd>Ctrl</kbd>／<kbd>⌘</kbd>＋ドラッグまたはホイールで拡大・縮小です。
+        <h2 class="flow-step__title" id="step3-label"><span class="num">3</span> 位置を調整</h2>
+        <p class="muted" style="margin: 0 0 0.5rem;">
+          プレビュー上の切り抜きをドラッグして操作します。スマホでは下のモードを選ぶか、<strong>二本指</strong>でピンチ（拡大）・ひねり（回転）もできます。
         </p>
+        <div id="interaction-mode" role="toolbar" aria-label="調整モード（タッチ向け）">
+          <button type="button" class="interaction-mode-btn is-active" data-mode="move" aria-pressed="true">移動</button>
+          <button type="button" class="interaction-mode-btn" data-mode="rotate" aria-pressed="false">回転</button>
+          <button type="button" class="interaction-mode-btn" data-mode="scale" aria-pressed="false">拡大</button>
+        </div>
       </section>
 
       <section class="flow-step" aria-labelledby="step4-label">
