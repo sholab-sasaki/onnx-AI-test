@@ -29,6 +29,7 @@
   var photoFileEl = document.getElementById("photo-file");
   var bgFileEl = document.getElementById("bg-file");
   var btnProcess = document.getElementById("btn-process");
+  var previewPanelEl = document.getElementById("preview-panel");
   var btnDl = document.getElementById("btn-dl-png");
   var slX = document.getElementById("sl-x");
   var slY = document.getElementById("sl-y");
@@ -82,6 +83,7 @@
   };
 
   var lastPointerPos = { x: 0, y: 0 };
+  var processCompleteTimer = null;
 
   function setStatus(msg) {
     if (statusEl) statusEl.textContent = msg;
@@ -664,20 +666,53 @@
     btnProcess.disabled = !(u2Session && mosaicSession && photoImage && bgImage);
   }
 
-  function setProcessBusy(busy) {
-    if (!btnProcess) return;
-    if (busy) {
-      btnProcess.classList.add("is-busy");
-      btnProcess.setAttribute("aria-busy", "true");
-      btnProcess.disabled = true;
-      btnProcess.textContent = "実行中…";
-      if (viewportWrapEl) viewportWrapEl.classList.add("is-processing");
-    } else {
-      btnProcess.classList.remove("is-busy");
-      btnProcess.removeAttribute("aria-busy");
-      btnProcess.textContent = btnProcessIdleLabel;
-      if (viewportWrapEl) viewportWrapEl.classList.remove("is-processing");
+  function clearProcessCompleteTimer() {
+    if (processCompleteTimer) {
+      clearTimeout(processCompleteTimer);
+      processCompleteTimer = null;
     }
+  }
+
+  function endProcessRunning() {
+    if (!btnProcess) return;
+    btnProcess.classList.remove("is-busy");
+    btnProcess.removeAttribute("aria-busy");
+    if (viewportWrapEl) viewportWrapEl.classList.remove("is-processing");
+  }
+
+  function showProcessComplete() {
+    if (!btnProcess) return;
+    endProcessRunning();
+    btnProcess.classList.add("is-complete");
+    btnProcess.textContent = "実行完了";
+    clearProcessCompleteTimer();
+    processCompleteTimer = setTimeout(function () {
+      btnProcess.classList.remove("is-complete");
+      btnProcess.textContent = btnProcessIdleLabel;
+      processCompleteTimer = null;
+    }, 3200);
+    syncProcessButton();
+  }
+
+  function scrollPreviewIntoViewAfterRun() {
+    if (!previewPanelEl) return;
+    if (!window.matchMedia("(max-width: 900px)").matches) return;
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        previewPanelEl.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
+      });
+    });
+  }
+
+  function setProcessBusy() {
+    if (!btnProcess) return;
+    clearProcessCompleteTimer();
+    btnProcess.classList.remove("is-complete");
+    btnProcess.classList.add("is-busy");
+    btnProcess.setAttribute("aria-busy", "true");
+    btnProcess.disabled = true;
+    btnProcess.textContent = "実行中…";
+    if (viewportWrapEl) viewportWrapEl.classList.add("is-processing");
   }
 
   function updateSliderLabels() {
@@ -836,7 +871,7 @@
       return;
     }
 
-    setProcessBusy(true);
+    setProcessBusy();
     setStatus("実行中… U²-Net でマスク推論中（初回は数十秒かかることがあります）");
     try {
       var lb = letterboxToTensor(photoImage);
@@ -929,10 +964,16 @@
       );
       drawComposite();
       if (btnDl) btnDl.disabled = false;
+      showProcessComplete();
+      scrollPreviewIntoViewAfterRun();
     } catch (e) {
       setStatus("エラー: " + (e && e.message ? e.message : String(e)));
-    } finally {
-      setProcessBusy(false);
+      endProcessRunning();
+      clearProcessCompleteTimer();
+      if (btnProcess) {
+        btnProcess.classList.remove("is-complete");
+        btnProcess.textContent = btnProcessIdleLabel;
+      }
       syncProcessButton();
     }
   }

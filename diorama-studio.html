@@ -385,6 +385,33 @@
       to { transform: rotate(360deg); }
     }
 
+    button.primary.is-complete {
+      background: #16a34a;
+      border-color: #16a34a;
+      cursor: default;
+    }
+    button.primary.is-complete:hover {
+      background: #15803d;
+      border-color: #15803d;
+    }
+    @media (prefers-color-scheme: dark) {
+      button.primary.is-complete {
+        background: #22c55e;
+        border-color: #22c55e;
+        color: #fff;
+      }
+      button.primary.is-complete:hover {
+        background: #4ade80;
+        border-color: #4ade80;
+        color: #052e16;
+      }
+    }
+
+    #preview-panel {
+      scroll-margin-top: 0.75rem;
+      scroll-margin-bottom: 0.75rem;
+    }
+
     .sr-only {
       position: absolute;
       width: 1px;
@@ -407,7 +434,7 @@
   </header>
 
   <div class="layout">
-    <div class="card card--preview">
+    <div class="card card--preview" id="preview-panel">
       <div id="viewport-wrap">
         <canvas id="stage" width="800" height="600" aria-label="合成プレビュー"></canvas>
       </div>
