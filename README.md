@@ -53,11 +53,17 @@ git push -u origin main
 
 `main` に push すると **GitHub Actions** が静的ファイルを **GitHub Pages** にデプロイします（`.github/workflows/deploy-github-pages.yml`）。ONNX は **Git LFS の実体を取得したうえで**アップロードされます。
 
-### 初回だけ
+### 初回だけ（必須・これを先にやらないとデプロイが必ず失敗します）
 
-1. リポジトリ **Settings** → **Pages**
-2. **Build and deployment** の **Source** を **GitHub Actions** にする（「Deploy from a branch」ではなく Actions 連携）
-3. 初回ワークフロー実行後、同じ Pages 画面に **公開 URL** が表示されます
+**ワークフローを一度も走らせる前に**、次を設定してください。省略すると `configure-pages` で `Get Pages site failed` / `HttpError: Not Found` になります。
+
+1. ブラウザで **Pages 設定**を開く:  
+   [github.com/sholab-sasaki/onnx-AI-test/settings/pages](https://github.com/sholab-sasaki/onnx-AI-test/settings/pages)
+2. **Build and deployment** の **Source** で、**GitHub Actions** を選ぶ  
+   （「Deploy from a branch」のままでは、このリポジトリ用の Actions デプロイと一致しません）
+3. 画面を保存したら、**Actions** タブで **Deploy to GitHub Pages** を **Re-run** する（または `main` に空コミットで push）
+
+※ 新規リポジトリでは Source が未設定のままだと、Pages の「サイト」が API 上まだ存在せず 404 になります。**先に Source = GitHub Actions** が重要です。
 
 個人リポジトリの URL は次の形です（実際の値は Settings の Pages に従ってください）。
 
@@ -75,6 +81,10 @@ git lfs push --all origin
 ```
 
 （`git lfs ls-files` で LFS 管理されているファイルが一覧されます。）
+
+#### `Get Pages site failed` / `configure-pages` の Not Found
+
+上記のとおり **Settings → Pages → Source を GitHub Actions** にしていないときに出ます。設定後にワークフローを再実行してください。
 
 ### その他のホスティング（参考）
 

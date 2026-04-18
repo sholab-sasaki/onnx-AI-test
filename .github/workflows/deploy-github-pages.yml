@@ -1,5 +1,8 @@
 # 静的ファイルを GitHub Pages に公開（一般ユーザーがブラウザから利用可能）
 # ONNX 等は Git LFS の実体を取得してからアップロードする
+#
+# 初回: リポジトリ Settings → Pages で Source を「GitHub Actions」にすること。
+# 未設定だと configure-pages が Get Pages site failed (404) になる。
 name: Deploy to GitHub Pages
 
 on:
