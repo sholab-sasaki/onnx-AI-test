@@ -22,6 +22,7 @@
   var MOSAIC_BOX_DEFAULT = 224;
 
   var stage = document.getElementById("stage");
+  var viewportWrapEl = document.getElementById("viewport-wrap");
   var statusEl = document.getElementById("status");
   var u2netFileEl = document.getElementById("u2net-file");
   var mosaicFileEl = document.getElementById("mosaic-file");
@@ -37,6 +38,7 @@
   var valY = document.getElementById("val-y");
   var valScale = document.getElementById("val-scale");
   var valRot = document.getElementById("val-rot");
+  var btnProcessIdleLabel = "実行";
   var photoPresetEl = document.getElementById("photo-preset");
   var bgPresetEl = document.getElementById("bg-preset");
   var btnClearModelCache = document.getElementById("btn-clear-model-cache");
@@ -646,7 +648,24 @@
 
   function syncProcessButton() {
     if (!btnProcess) return;
+    if (btnProcess.classList.contains("is-busy")) return;
     btnProcess.disabled = !(u2Session && mosaicSession && photoImage && bgImage);
+  }
+
+  function setProcessBusy(busy) {
+    if (!btnProcess) return;
+    if (busy) {
+      btnProcess.classList.add("is-busy");
+      btnProcess.setAttribute("aria-busy", "true");
+      btnProcess.disabled = true;
+      btnProcess.textContent = "実行中…";
+      if (viewportWrapEl) viewportWrapEl.classList.add("is-processing");
+    } else {
+      btnProcess.classList.remove("is-busy");
+      btnProcess.removeAttribute("aria-busy");
+      btnProcess.textContent = btnProcessIdleLabel;
+      if (viewportWrapEl) viewportWrapEl.classList.remove("is-processing");
+    }
   }
 
   function updateSliderLabels() {
@@ -773,8 +792,8 @@
       return;
     }
 
-    btnProcess.disabled = true;
-    setStatus("U²-Net でマスク推論中…（初回は数十秒かかることがあります）");
+    setProcessBusy(true);
+    setStatus("実行中… U²-Net でマスク推論中（初回は数十秒かかることがあります）");
     try {
       var lb = letterboxToTensor(photoImage);
       var inName = u2Session.inputNames && u2Session.inputNames[0];
@@ -790,7 +809,7 @@
       var ext = extractMask1D(outTen, outTen.dims);
       var mask01 = maybeSigmoid(ext.mask);
 
-      setStatus("モザイクスタイル適用中…");
+      setStatus("実行中… モザイクスタイルを適用しています");
       var cRgb = document.createElement("canvas");
       cRgb.width = U2_BOX;
       cRgb.height = U2_BOX;
@@ -861,12 +880,13 @@
       lastPersonW = U2_BOX;
       lastPersonH = U2_BOX;
 
-      setStatus("合成プレビューを更新しました。キャンバス上でドラッグで移動、Shift+ドラッグで回転、Ctrl+ドラッグ／ホイールで拡大。スライダーでも調整できます。");
+      setStatus("合成が完了しました。左のプレビュー上でドラッグして位置を調整できます（Shift＋ドラッグで回転、Ctrl／⌘＋ドラッグ・ホイールで拡大縮小）。");
       drawComposite();
       if (btnDl) btnDl.disabled = false;
     } catch (e) {
       setStatus("エラー: " + (e && e.message ? e.message : String(e)));
     } finally {
+      setProcessBusy(false);
       syncProcessButton();
     }
   }

@@ -130,6 +130,31 @@
       background:
         linear-gradient(145deg, rgba(255,255,255,0.04) 0%, transparent 50%),
         repeating-conic-gradient(#e4e6ec 0% 25%, #f0f2f6 0% 50%) 50% / 14px 14px;
+      position: relative;
+    }
+    #viewport-wrap.is-processing {
+      pointer-events: none;
+      cursor: wait;
+    }
+    #viewport-wrap.is-processing::after {
+      content: "処理中…";
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.55);
+      border-radius: inherit;
+      z-index: 2;
+    }
+    @media (prefers-color-scheme: dark) {
+      #viewport-wrap.is-processing::after {
+        background: rgba(15, 17, 23, 0.65);
+        color: var(--text);
+      }
     }
     @media (prefers-color-scheme: dark) {
       #viewport-wrap {
@@ -306,6 +331,40 @@
       color: var(--text);
     }
     .back-link { margin-top: 1rem; font-size: 0.8125rem; }
+
+    button.primary.is-busy {
+      cursor: wait;
+      position: relative;
+      padding-left: 2.35rem;
+    }
+    button.primary.is-busy::before {
+      content: "";
+      position: absolute;
+      left: 0.85rem;
+      top: 50%;
+      width: 0.95rem;
+      height: 0.95rem;
+      margin-top: -0.475rem;
+      border: 2px solid rgba(255, 255, 255, 0.35);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: btn-spin 0.65s linear infinite;
+    }
+    @keyframes btn-spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
   </style>
 </head>
 <body>
@@ -323,7 +382,8 @@
       </div>
       <p class="hint-bar">
         <strong style="color: var(--text);">合成後:</strong>
-        ドラッグで移動 · <kbd>Shift</kbd>+ドラッグで回転 · <kbd>Ctrl</kbd> / <kbd>⌘</kbd>+ドラッグで拡大 · ホイールで拡大縮小
+        切り抜き画像を<strong>ドラッグ</strong>して移動 · <kbd>Shift</kbd>+ドラッグで回転 ·
+        <kbd>Ctrl</kbd> / <kbd>⌘</kbd>+ドラッグで拡大 · ホイールで拡大縮小
       </p>
       <p id="status">初期化中…</p>
     </div>
@@ -358,15 +418,11 @@
       </section>
 
       <section class="flow-step" aria-labelledby="step3-label">
-        <h2 class="flow-step__title" id="step3-label"><span class="num">3</span> 画像の位置を調整</h2>
-        <label for="sl-x">位置 X <span id="val-x"></span></label>
-        <input type="range" id="sl-x" min="-400" max="400" value="0" />
-        <label for="sl-y">位置 Y <span id="val-y"></span></label>
-        <input type="range" id="sl-y" min="-400" max="400" value="0" />
-        <label for="sl-scale">拡大率 <span id="val-scale"></span></label>
-        <input type="range" id="sl-scale" min="20" max="200" value="100" />
-        <label for="sl-rot">回転 <span id="val-rot"></span></label>
-        <input type="range" id="sl-rot" min="-180" max="180" value="0" />
+        <h2 class="flow-step__title" id="step3-label"><span class="num">3</span> 位置を調整（ドラッグ）</h2>
+        <p class="muted" style="margin: 0;">
+          合成後、左のプレビュー上で切り抜き画像を<strong>ドラッグ</strong>して動かせます。
+          <kbd>Shift</kbd>＋ドラッグで回転、<kbd>Ctrl</kbd>／<kbd>⌘</kbd>＋ドラッグまたはホイールで拡大・縮小です。
+        </p>
       </section>
 
       <section class="flow-step" aria-labelledby="step4-label">
@@ -413,6 +469,14 @@
         <a href="index.html">← onnx-AI-test トップ</a>
       </p>
     </div>
+  </div>
+
+  <!-- 位置・拡大・回転はマウス操作のみ。値は JS が更新 -->
+  <div class="sr-only" aria-hidden="true">
+    <input type="range" id="sl-x" min="-400" max="400" value="0" />
+    <input type="range" id="sl-y" min="-400" max="400" value="0" />
+    <input type="range" id="sl-scale" min="20" max="200" value="100" />
+    <input type="range" id="sl-rot" min="-180" max="180" value="0" />
   </div>
 
   <footer class="site-footer">
