@@ -2,9 +2,15 @@
 (function () {
   "use strict";
 
-  var U2NET_URL = "models/u2netp/u2netp.onnx";
-  var MOSAIC_URL = "models/mosaic-8/mosaic-8.onnx";
-  var BG_DEFAULT_URL = "image/back_image_01.png";
+  /** 現在のページを基準に同一オリジンの models/... を解決（サブパス配信でも確実に fetch できる） */
+  var U2NET_URL = new URL("models/u2netp/u2netp.onnx", window.location.href).href;
+  var MOSAIC_URL = new URL("models/mosaic-8/mosaic-8.onnx", window.location.href).href;
+  var PIG_SAMPLE_URL = new URL("image/pig_image.png", window.location.href).href;
+  var BG_PRESET_URLS = {
+    "bg-03": new URL("image/back_Image_03.png", window.location.href).href,
+    "bg-02": new URL("image/back-image-02.png", window.location.href).href,
+    "bg-01": new URL("image/back_image_01.png", window.location.href).href
+  };
 
   var IMAGENET_MEAN = [0.485, 0.456, 0.406];
   var IMAGENET_STD = [0.229, 0.224, 0.225];
@@ -32,6 +38,8 @@
   var photoPresetEl = document.getElementById("photo-preset");
   var bgPresetEl = document.getElementById("bg-preset");
   var btnClearModelCache = document.getElementById("btn-clear-model-cache");
+  var onnxLoadStatusEl = document.getElementById("onnx-load-status");
+  var onnxManualWrapEl = document.getElementById("onnx-manual-wrap");
 
   var ctx = stage && stage.getContext("2d", { alpha: true, willReadFrequently: true });
   var modelCacheDbPromise = null;
@@ -61,6 +69,22 @@
 
   function setStatus(msg) {
     if (statusEl) statusEl.textContent = msg;
+  }
+
+  function updateOnnxLoadBanner(okBoth, failDetail) {
+    if (!onnxLoadStatusEl) return;
+    if (okBoth) {
+      onnxLoadStatusEl.textContent =
+        "サーバーに配置されている ONNX を自動読み込みしました（U²-Net-P・mosaic-8）。2回目以降はブラウザキャッシュで高速化されます。";
+      onnxLoadStatusEl.className = "onnx-status onnx-status--ok";
+      if (onnxManualWrapEl) onnxManualWrapEl.open = false;
+    } else {
+      onnxLoadStatusEl.textContent =
+        failDetail ||
+        "自動読み込みに失敗しました。下の「手動で ONNX を指定」から u2netp.onnx / mosaic-8.onnx を選ぶか、ページを再読み込みしてください。";
+      onnxLoadStatusEl.className = "onnx-status onnx-status--err";
+      if (onnxManualWrapEl) onnxManualWrapEl.open = true;
+    }
   }
 
   function ensureOrt() {
@@ -172,6 +196,8 @@
   async function tryAutoLoadFromUrls() {
     var okU2 = false;
     var okMosaic = false;
+    var errU2 = "";
+    var errMo = "";
     try {
       setStatus("U²-Net-P を読み込み中（キャッシュまたはネットワーク）…");
       var b1 = await fetchModelWithCache(U2NET_URL);
@@ -179,6 +205,7 @@
       okU2 = true;
     } catch (e1) {
       u2Session = null;
+      errU2 = e1 && e1.message ? e1.message : String(e1);
     }
     try {
       setStatus("mosaic-8 を読み込み中（キャッシュまたはネットワーク）…");
@@ -187,18 +214,27 @@
       okMosaic = true;
     } catch (e2) {
       mosaicSession = null;
+      errMo = e2 && e2.message ? e2.message : String(e2);
     }
     if (okU2 && okMosaic) {
-      setStatus("モデル準備完了（URL）。写真と背景を選んで「切り抜き＋スタイル＋合成」を押してください。");
+      setStatus("モデル準備完了。写真と背景を選んで「切り抜き＋スタイル＋合成」を押してください。");
+      updateOnnxLoadBanner(true, null);
     } else {
       var parts = [];
       if (!okU2) parts.push("u2netp");
       if (!okMosaic) parts.push("mosaic-8");
+      var detail =
+        "読み込めなかったモデル: " +
+        parts.join("・") +
+        "。" +
+        (!okU2 ? " [U²-Net: " + errU2 + "]" : "") +
+        (!okMosaic ? " [mosaic: " + errMo + "]" : "");
       setStatus(
         "URL から読み込めなかったモデル: " +
           parts.join("・") +
-          "。上の ONNX 欄から該当の .onnx を手動で選択してください。"
+          "。下の「手動で ONNX を指定」から該当の .onnx を選んでください。"
       );
+      updateOnnxLoadBanner(false, detail);
     }
     syncProcessButton();
   }
@@ -218,6 +254,11 @@
       setStatus("u2netp の読み込みに失敗: " + (e && e.message ? e.message : String(e)));
     }
     syncProcessButton();
+    if (u2Session && mosaicSession && onnxLoadStatusEl) {
+      onnxLoadStatusEl.textContent = "手動で指定した ONNX を読み込み済みです。";
+      onnxLoadStatusEl.className = "onnx-status onnx-status--ok";
+      if (onnxManualWrapEl) onnxManualWrapEl.open = false;
+    }
   }
 
   async function loadMosaicFromFile(file) {
@@ -235,6 +276,11 @@
       setStatus("mosaic-8 の読み込みに失敗: " + (e && e.message ? e.message : String(e)));
     }
     syncProcessButton();
+    if (u2Session && mosaicSession && onnxLoadStatusEl) {
+      onnxLoadStatusEl.textContent = "手動で指定した ONNX を読み込み済みです。";
+      onnxLoadStatusEl.className = "onnx-status onnx-status--ok";
+      if (onnxManualWrapEl) onnxManualWrapEl.open = false;
+    }
   }
 
   function loadImageFromFile(file) {
@@ -328,7 +374,7 @@
   }
 
   async function applyPhotoPreset(mode) {
-    var m = mode || (photoPresetEl ? photoPresetEl.value : "synthetic");
+    var m = mode || (photoPresetEl ? photoPresetEl.value : "pig");
     if (m === "file") {
       photoImage = null;
       if (photoFileEl) photoFileEl.value = "";
@@ -336,6 +382,26 @@
       syncProcessButton();
       return;
     }
+    if (photoFileEl) photoFileEl.value = "";
+
+    if (m === "pig") {
+      try {
+        photoImage = await loadImageUrl(PIG_SAMPLE_URL);
+        setStatus("写真: 同梱の pig_image.png を使用しています。");
+      } catch (e) {
+        setStatus(
+          "pig_image.png の読み込みに失敗: " +
+            (e && e.message ? e.message : String(e)) +
+            " デモ画像に切り替えます。"
+        );
+        if (photoPresetEl) photoPresetEl.value = "synthetic";
+        await applyPhotoPreset("synthetic");
+        return;
+      }
+      syncProcessButton();
+      return;
+    }
+
     if (m === "synthetic") {
       try {
         photoImage = await makeSyntheticPersonImage();
@@ -345,11 +411,12 @@
         photoImage = null;
       }
       syncProcessButton();
+      return;
     }
   }
 
   async function applyBgPreset(mode) {
-    var m = mode || (bgPresetEl ? bgPresetEl.value : "bundled");
+    var m = mode || (bgPresetEl ? bgPresetEl.value : "bg-03");
     if (m === "file") {
       bgImage = null;
       if (bgFileEl) bgFileEl.value = "";
@@ -357,19 +424,39 @@
       syncProcessButton();
       return;
     }
-    if (m === "bundled") {
+    if (bgFileEl) bgFileEl.value = "";
+
+    if (BG_PRESET_URLS[m]) {
       try {
-        bgImage = await loadImageUrl(BG_DEFAULT_URL);
-        setStatus("背景: " + BG_DEFAULT_URL + " を読み込みました。");
+        bgImage = await loadImageUrl(BG_PRESET_URLS[m]);
+        setStatus("背景を読み込みました。");
         onBgReady();
         return;
       } catch (e) {
+        if (m !== "bg-03") {
+          if (bgPresetEl) bgPresetEl.value = "bg-03";
+          setStatus("選択した背景が見つからないため、既定（back_Image_03）に切り替えます…");
+          try {
+            bgImage = await loadImageUrl(BG_PRESET_URLS["bg-03"]);
+            setStatus("背景: 既定の back_Image_03.png を読み込みました。");
+            onBgReady();
+            return;
+          } catch (e2) {}
+        }
         if (bgPresetEl) bgPresetEl.value = "synthetic";
-        await applyBgPreset("synthetic");
-        setStatus("既定の背景が見つからないため、デモ用グラデーションに切り替えました。");
+        try {
+          bgImage = await makeSyntheticBgImage();
+          setStatus("同梱背景が見つからないため、デモ用グラデーションに切り替えました。");
+          onBgReady();
+        } catch (e3) {
+          setStatus(e3 && e3.message ? e3.message : String(e3));
+          bgImage = null;
+          syncProcessButton();
+        }
         return;
       }
     }
+
     if (m === "synthetic") {
       try {
         bgImage = await makeSyntheticBgImage();
@@ -841,6 +928,11 @@
     btnClearModelCache.addEventListener("click", function () {
       cacheClearAllModels().then(function () {
         setStatus("ONNX の IndexedDB キャッシュを削除しました。再読み込み後に再取得します。");
+        if (onnxLoadStatusEl) {
+          onnxLoadStatusEl.textContent =
+            "キャッシュを削除しました。ページを再読み込みするとサーバーから ONNX を再取得します。";
+          onnxLoadStatusEl.className = "onnx-status";
+        }
       });
     });
   }
@@ -1014,8 +1106,8 @@
   updateSliderLabels();
 
   async function bootstrap() {
-    await applyPhotoPreset("synthetic");
-    await applyBgPreset(bgPresetEl ? bgPresetEl.value : "bundled");
+    await applyPhotoPreset("pig");
+    await applyBgPreset(bgPresetEl ? bgPresetEl.value : "bg-03");
     await tryAutoLoadFromUrls();
   }
   bootstrap();

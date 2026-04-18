@@ -77,8 +77,12 @@
     button.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
     button:disabled { opacity: 0.5; cursor: not-allowed; }
     #viewport-wrap {
-      overflow: auto;
-      max-height: 72vh;
+      overflow: hidden;
+      max-height: min(78vh, 900px);
+      min-height: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       border: 1px dashed var(--border);
       border-radius: 8px;
       background: repeating-conic-gradient(#e8e8ec 0% 25%, #f4f4f6 0% 50%) 50% / 16px 16px;
@@ -92,7 +96,10 @@
       display: block;
       margin: 0 auto;
       max-width: 100%;
-      height: auto;
+      max-height: min(78vh, 900px);
+      width: auto !important;
+      height: auto !important;
+      object-fit: contain;
       touch-action: none;
     }
     #stage.can-grab { cursor: grab; }
@@ -110,6 +117,39 @@
       line-height: 1.55;
     }
     .site-footer strong { color: var(--text); font-weight: 600; }
+    .onnx-status {
+      font-size: 0.875rem;
+      margin: 0 0 0.75rem;
+      padding: 0.55rem 0.7rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      line-height: 1.45;
+    }
+    .onnx-status--ok {
+      background: rgba(34, 197, 94, 0.12);
+      border-color: rgba(34, 197, 94, 0.35);
+      color: var(--text);
+    }
+    .onnx-status--err {
+      background: rgba(239, 68, 68, 0.08);
+      border-color: rgba(239, 68, 68, 0.28);
+      color: var(--text);
+    }
+    #onnx-manual-wrap {
+      margin-bottom: 0.75rem;
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      padding: 0.5rem 0.65rem 0.65rem;
+    }
+    #onnx-manual-wrap summary {
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.875rem;
+      user-select: none;
+    }
+    #onnx-manual-wrap[open] summary {
+      margin-bottom: 0.5rem;
+    }
   </style>
 </head>
 <body>
@@ -117,7 +157,7 @@
     <h1>ジオラマスタジオ</h1>
     <p class="muted">
       写真から人物を切り抜き（U²-Net-P）、モザイク風スタイル（fast neural style）を適用し、背景に合成します。
-      既定では同じフォルダから ONNX を取得しますが、<strong>失敗した場合は下の「ONNX を手動で選択」から <code>u2netp.onnx</code> と <code>mosaic-8.onnx</code> を指定</strong>してください（<code>file://</code> でも利用可）。
+      <strong>ONNX はサイトに同梱された <code>models/</code> から自動で読み込みます</strong>（手動選択はオフラインや失敗時のみ）。
     </p>
     <div class="layout">
       <div class="card">
@@ -131,11 +171,18 @@
         <p id="status">初期化中…</p>
       </div>
       <div class="card">
-        <label for="u2net-file">ONNX：U²-Net-P（<code>u2netp.onnx</code>）</label>
-        <input type="file" id="u2net-file" accept=".onnx,application/octet-stream,*/*" />
+        <p id="onnx-load-status" class="onnx-status" aria-live="polite">
+          サーバー上の ONNX を読み込んでいます…
+        </p>
 
-        <label for="mosaic-file">ONNX：モザイクスタイル（<code>mosaic-8.onnx</code>）</label>
-        <input type="file" id="mosaic-file" accept=".onnx,application/octet-stream,*/*" />
+        <details id="onnx-manual-wrap">
+          <summary>手動で ONNX を指定する（自動読み込みに失敗したとき・オフライン）</summary>
+          <label for="u2net-file">U²-Net-P（<code>u2netp.onnx</code>）</label>
+          <input type="file" id="u2net-file" accept=".onnx,application/octet-stream,*/*" />
+
+          <label for="mosaic-file">モザイクスタイル（<code>mosaic-8.onnx</code>）</label>
+          <input type="file" id="mosaic-file" accept=".onnx,application/octet-stream,*/*" />
+        </details>
 
         <p class="muted" style="margin-top: 0.75rem;">
           初回アクセスで取得した ONNX はブラウザの <strong>IndexedDB</strong> に保存され、次回以降は再ダウンロードを省略します（手動で選んだファイルは保存しません）。
@@ -146,7 +193,8 @@
 
         <label for="photo-preset">人物写真のプリセット</label>
         <select id="photo-preset" aria-label="人物写真のプリセット">
-          <option value="synthetic" selected>デモ用（オフライン可・Canvas で生成）</option>
+          <option value="pig" selected>同梱（<code>image/pig_image.png</code>）</option>
+          <option value="synthetic">デモ用（オフライン可・Canvas で生成）</option>
           <option value="file">ファイルから選択</option>
         </select>
 
@@ -155,7 +203,9 @@
 
         <label for="bg-preset">背景のプリセット</label>
         <select id="bg-preset" aria-label="背景のプリセット">
-          <option value="bundled" selected>同梱パスを試す（<code>image/back_image_01.png</code>）</option>
+          <option value="bg-03" selected>同梱（<code>image/back_Image_03.png</code>・既定）</option>
+          <option value="bg-02">同梱（<code>image/back-image-02.png</code>）</option>
+          <option value="bg-01">同梱（<code>image/back_image_01.png</code>）</option>
           <option value="synthetic">デモ用グラデーション（オフライン可）</option>
           <option value="file">ファイルから選択</option>
         </select>
