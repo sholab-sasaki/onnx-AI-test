@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ONNX ラボ — onnx-test</title>
+  <title>ONNX ラボ — onnx-AI-test</title>
   <style>
     :root {
       --bg: #f4f4f6;
@@ -35,10 +35,27 @@
       background: var(--bg);
       color: var(--text);
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
       padding: 1.25rem;
       line-height: 1.6;
+      gap: 1rem;
+    }
+    .site-footer {
+      max-width: 560px;
+      width: 100%;
+      font-size: 0.75rem;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+    .site-footer a {
+      color: var(--muted);
+      font-weight: 500;
+      text-decoration: underline;
+    }
+    .site-footer a:hover {
+      color: var(--accent);
     }
     .card {
       width: 100%;
@@ -82,7 +99,7 @@
   <main class="card">
     <h1>ONNX ラボ</h1>
     <p>
-      ブラウザで ONNX モデルを試す <strong>onnx-test</strong> プロジェクトのエントリです。
+      ブラウザで ONNX モデルを試す <strong>onnx-AI-test</strong> プロジェクトのエントリです。
       人物切り抜き・スタイル適用・背景合成など、ツールを追加していく想定です。
     </p>
     <nav aria-label="サイト内リンク">
@@ -94,5 +111,12 @@
       </ul>
     </nav>
   </main>
+  <footer class="site-footer">
+    <p>
+      <strong>クレジット:</strong>
+      ジオラマスタジオは U²-Net-P（Apache License 2.0）と Fast Neural Style の mosaic-8 ONNX（BSD-3-Clause、ONNX Model Zoo 系）を利用しています。ブラウザ推論は ONNX Runtime Web です。
+      同梱の <code>models/background-removal</code> を使う場合は、当該フォルダの LICENSE（CC BY-SA 4.0 等）に従ってください。
+    </p>
+  </footer>
 </body>
 </html>

@@ -75,7 +75,7 @@
     if (!window.indexedDB) return Promise.resolve(null);
     if (modelCacheDbPromise) return modelCacheDbPromise;
     modelCacheDbPromise = new Promise(function (resolve) {
-      var req = indexedDB.open("onnx-test-model-cache", 1);
+      var req = indexedDB.open("onnx-ai-test-model-cache", 1);
       req.onupgradeneeded = function (ev) {
         var db = ev.target.result;
         if (!db.objectStoreNames.contains("models")) {

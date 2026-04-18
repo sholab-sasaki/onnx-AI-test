@@ -101,6 +101,15 @@
     #stage.can-scale { cursor: nwse-resize; }
     #status { font-size: 0.875rem; margin-top: 0.75rem; white-space: pre-wrap; word-break: break-word; }
     a { color: var(--accent); }
+    .site-footer {
+      max-width: 1100px;
+      margin: 1.25rem auto 0;
+      padding: 0 1rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+    .site-footer strong { color: var(--text); font-weight: 600; }
   </style>
 </head>
 <body>
@@ -169,11 +178,18 @@
         <input type="range" id="sl-rot" min="-180" max="180" value="0" />
 
         <p class="muted" style="margin-top: 1rem;">
-          <a href="index.html">← onnx-test トップ</a>
+          <a href="index.html">← onnx-AI-test トップ</a>
         </p>
       </div>
     </div>
   </main>
+  <footer class="site-footer">
+    <p>
+      <strong>クレジット:</strong>
+      U²-Net-P（Apache License 2.0）、mosaic-8 スタイル転移 ONNX（BSD-3-Clause、ONNX Model Zoo 由来）。推論: ONNX Runtime Web（WASM）。
+      デモ画像は Canvas 生成または当プロジェクトで用意した素材です。詳細はリポジトリの README（ライセンス・クレジット）を参照してください。
+    </p>
+  </footer>
   <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
   <script src="diorama-studio.js" defer></script>
 </body>
