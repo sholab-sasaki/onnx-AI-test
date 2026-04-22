@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>画像説明ラボ</title>
+  <style>
+    :root {
+      --bg: #eef1f6;
+      --surface: #ffffff;
+      --text: #111827;
+      --muted: #4b5563;
+      --border: #d8deea;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --accent-soft: rgba(37, 99, 235, 0.08);
+      --good: #166534;
+      --bad: #b91c1c;
+      --shadow: 0 14px 40px rgba(15, 23, 42, 0.08);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0b1020;
+        --surface: #131b2f;
+        --text: #e5ecf8;
+        --muted: #9fb0cc;
+        --border: #263352;
+        --accent: #60a5fa;
+        --accent-hover: #93c5fd;
+        --accent-soft: rgba(96, 165, 250, 0.12);
+        --good: #86efac;
+        --bad: #fda4af;
+        --shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+      }
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, "Noto Sans JP", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 1.2rem 1rem 2rem;
+    }
+    .page {
+      width: 100%;
+      max-width: 980px;
+      margin: 0 auto;
+      display: grid;
+      gap: 1rem;
+      grid-template-columns: minmax(300px, 1fr) minmax(300px, 420px);
+      align-items: start;
+    }
+    @media (max-width: 920px) {
+      .page { grid-template-columns: 1fr; }
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      padding: 1.1rem;
+    }
+    h1 {
+      margin: 0 0 0.4rem;
+      font-size: clamp(1.3rem, 2.4vw, 1.6rem);
+    }
+    .tagline {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+    #preview-wrap {
+      margin-top: 0.9rem;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      min-height: 240px;
+      background:
+        linear-gradient(145deg, rgba(255,255,255,0.04) 0%, transparent 45%),
+        repeating-conic-gradient(#e7ebf3 0% 25%, #f2f5fb 0% 50%) 50% / 14px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+    @media (prefers-color-scheme: dark) {
+      #preview-wrap {
+        background:
+          linear-gradient(145deg, rgba(255,255,255,0.03) 0%, transparent 45%),
+          repeating-conic-gradient(#1b2439 0% 25%, #141b2c 0% 50%) 50% / 14px 14px;
+      }
+    }
+    #preview-image {
+      max-width: 100%;
+      max-height: min(70vh, 620px);
+      object-fit: contain;
+      display: none;
+    }
+    #preview-placeholder {
+      margin: 0;
+      font-size: 0.9rem;
+      color: var(--muted);
+      padding: 0.8rem;
+      text-align: center;
+    }
+    .step-title {
+      margin: 0 0 0.55rem;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+    }
+    .upload-box {
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 0.95rem;
+      background: var(--bg);
+    }
+    .upload-box:focus-within {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+    label { display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 0.4rem; }
+    input[type="file"] { width: 100%; font: inherit; }
+    button {
+      width: 100%;
+      margin-top: 0.8rem;
+      border: 1px solid var(--accent);
+      background: var(--accent);
+      color: #fff;
+      border-radius: 10px;
+      font: inherit;
+      font-weight: 700;
+      padding: 0.7rem 1rem;
+      cursor: pointer;
+      transition: background 0.16s, border-color 0.16s, opacity 0.16s;
+    }
+    button:hover:not(:disabled) {
+      background: var(--accent-hover);
+      border-color: var(--accent-hover);
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    button.is-busy {
+      cursor: wait;
+      position: relative;
+      padding-left: 2.3rem;
+    }
+    button.is-busy::before {
+      content: "";
+      position: absolute;
+      left: 0.82rem;
+      top: 50%;
+      width: 0.92rem;
+      height: 0.92rem;
+      margin-top: -0.46rem;
+      border: 2px solid rgba(255,255,255,0.35);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.65s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    #status {
+      margin: 0.75rem 0 0;
+      font-size: 0.82rem;
+      color: var(--muted);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .result-box {
+      margin-top: 0.9rem;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--bg);
+      padding: 0.8rem 0.9rem;
+    }
+    .result-box h2 {
+      margin: 0 0 0.55rem;
+      font-size: 0.9rem;
+    }
+    .result-jp {
+      margin: 0;
+      font-size: 0.98rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .result-en {
+      margin: 0.45rem 0 0;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    .model-note {
+      margin-top: 0.75rem;
+      padding: 0.55rem 0.65rem;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      font-size: 0.8rem;
+      line-height: 1.45;
+    }
+    .model-note.ok { color: var(--good); }
+    .model-note.err { color: var(--bad); }
+    .muted {
+      margin: 0.75rem 0 0;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+    a { color: var(--accent); }
+    .site-footer {
+      max-width: 980px;
+      margin: 1rem auto 0;
+      font-size: 0.72rem;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="card">
+      <h1>画像説明ラボ</h1>
+      <p class="tagline">
+        画像を 1 枚アップロードすると、ONNX 推論で内容を解析し、日本語の説明文に変換して表示します。
+      </p>
+      <div id="preview-wrap">
+        <img id="preview-image" alt="アップロード画像のプレビュー" />
+        <p id="preview-placeholder">ここに画像プレビューが表示されます</p>
+      </div>
+    </section>
+
+    <section class="card">
+      <p id="model-status" class="model-note" aria-live="polite">モデルを準備しています…</p>
+
+      <p class="step-title">Step 1 / 画像を選択</p>
+      <div class="upload-box">
+        <label for="image-file">JPEG / PNG / WebP など</label>
+        <input type="file" id="image-file" accept="image/*" />
+      </div>
+
+      <p class="step-title" style="margin-top: 0.95rem;">Step 2 / 説明を生成</p>
+      <button id="btn-generate" type="button" disabled>日本語説明を生成</button>
+      <p id="status">画像とモデルの準備ができると実行できます。</p>
+
+      <div class="result-box" aria-live="polite">
+        <h2>日本語の説明</h2>
+        <p id="result-ja" class="result-jp">まだ説明は生成されていません。</p>
+        <p id="result-en" class="result-en"></p>
+      </div>
+
+      <p class="muted">
+        利用モデル:
+        <code>models/vit_gpt2_image_captioning</code>（画像説明） /
+        <code>models/LFM2_350M_ENJP_MT</code>（英日翻訳）
+      </p>
+      <p class="muted">
+        <a href="index.html">← onnx-AI-test トップ</a>
+      </p>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>
+      <strong>クレジット:</strong>
+      画像説明は nlpconnect の ViT-GPT2 系モデル（Xenova 形式 ONNX）を使用し、ブラウザ内で推論します。
+      推論基盤は Transformers.js + ONNX Runtime Web です。
+    </p>
+  </footer>
+
+  <script src="image-caption.js" defer></script>
+</body>
+</html>

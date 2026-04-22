@@ -7,6 +7,7 @@
 ## 機能概要
 
 - **ジオラマスタジオ**（`diorama-studio.html`）: U²-Net-P と mosaic 系 ONNX を WASM で実行
+- **画像説明ラボ**（`image-caption.html`）: ViT-GPT2 系 ONNX で画像内容を推定し、英語説明として表示
 - **ONNX のキャッシュ**: 同一オリジンから取得した `.onnx` は **IndexedDB** に保存され、2 回目以降の読み込みが速くなります
 - **プリセット画像**: 人物・背景を「デモ用（Canvas 生成）」や「同梱パス」から選べます（オフライン検証向け）
 
@@ -16,6 +17,15 @@
 
 - エクスプローラーで `index.html` を開く（一部環境では `file://` 制限あり）
 - 次の「Docker」で `http://localhost:8080` を使う（推奨）
+- Windows PowerShell なら `.\run-local.ps1` で簡易サーバー起動（`python -m http.server`）
+
+### 画像説明ラボをローカルで試す
+
+1. `.\run-local.ps1` を実行
+2. ブラウザで `http://localhost:8080/image-caption.html` を開く
+3. 画像を選んで「英語説明を生成」を押す
+
+初回は ONNX の読み込みで時間がかかることがあります。
 
 ## Docker で起動（自前サーバー向け）
 
@@ -102,5 +112,6 @@ python download_model.py --repo-id "組織またはユーザー/モデル名"
 |------|------|------|
 | `models/u2netp/` | U²-Net-P ONNX | README 上 **Apache License 2.0** |
 | `models/mosaic-8/` | Fast Neural Style（mosaic-8） | README 本文 **BSD-3-Clause**（YAML では apache 表記あり。本文の SPDX / License 節を参照） |
+| `models/vit_gpt2_image_captioning/` | ViT-GPT2 画像説明（Xenova ONNX 形式） | ベースモデル: `nlpconnect/vit-gpt2-image-captioning` |
 
 公開ページ（`index.html` / `diorama-studio.html`）のフッターにも短いクレジットを記載しています。

@@ -5,6 +5,9 @@ __pycache__/
 models/**/.cache/
 # download_model.py の既定保存先（任意の大きいモデル）
 models/hf-snapshot/
+# ローカル配置する大容量モデル（GitHub/Pages制限回避）
+models/vit_gpt2_image_captioning/
+models/LFM2_350M_ENJP_MT/
 .cursor/
 .specstory/
 .vscode/
